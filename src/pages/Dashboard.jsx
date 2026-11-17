@@ -6,6 +6,7 @@ import {
 import { useStore, available } from '../store/StoreContext';
 import { Card, CardHeader, Stat, Badge, Meter, Mono, Button, cx, fmtNum, timeAgo, fmtDate } from '../components/ui';
 import OrderFlow from '../components/OrderFlow';
+import { OrderViewActions } from '../components/rowActions';
 import { navigate } from '../router';
 
 /* Dummy monthly production figures for the statistics chart (UI only) */
@@ -133,6 +134,7 @@ export default function Dashboard() {
                   <th className="px-5 py-3 font-semibold">Progress</th>
                   <th className="px-5 py-3 font-semibold">Planned</th>
                   <th className="px-5 py-3 font-semibold">Status</th>
+                  <th className="px-5 py-3 text-right font-semibold">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -143,6 +145,7 @@ export default function Dashboard() {
                     <td className="min-w-[10.625rem] px-5 py-3"><OrderFlow status={o.status} compact /></td>
                     <td className="whitespace-nowrap px-5 py-3 text-slate-500">{fmtDate(o.plannedDate)}</td>
                     <td className="px-5 py-3"><Badge status={o.status} /></td>
+                    <td className="px-5 py-3 text-right"><OrderViewActions order={o} /></td>
                   </tr>
                 ))}
               </tbody>

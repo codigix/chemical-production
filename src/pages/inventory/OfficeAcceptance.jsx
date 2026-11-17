@@ -3,6 +3,7 @@ import { Stamp, PenLine, Eraser, BadgeCheck, Eye, Database } from 'lucide-react'
 import { useStore } from '../../store/StoreContext';
 import { Card, CardHeader, PageHeader, Button, Badge, Modal, Field, Mono, Table, EmptyState, inputCls, fmtNum, fmtDateTime, useToast } from '../../components/ui';
 import OrderDetail from '../../components/OrderDetail';
+import { AcceptedRowActions } from '../../components/rowActions';
 
 /* Simple signature pad on a canvas, saved as a PNG data URL in the JSON */
 function SignaturePad({ onChange }) {
@@ -94,7 +95,7 @@ export default function OfficeAcceptance() {
             { key: 'b', label: 'Signed by', render: (o) => o.acceptance?.by },
             { key: 'sig', label: 'Signature', render: (o) => (o.acceptance?.signature ? <img src={o.acceptance.signature} alt="" className="h-9 rounded bg-white px-1" /> : '—') },
             { key: 't', label: 'Accepted', render: (o) => <span className="whitespace-nowrap text-slate-500">{fmtDateTime(o.acceptance?.t)}</span> },
-            { key: 'v', label: '', align: 'right', render: (o) => <Button size="sm" variant="ghost" icon={Eye} onClick={() => setViewing(o.id)}>View</Button> },
+            { key: 'v', label: 'Actions', align: 'right', render: (o) => <AcceptedRowActions order={o} /> },
           ]}
         />
       </Card>

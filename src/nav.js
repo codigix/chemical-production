@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, ClipboardList, BookOpenCheck, Gauge, PackageOpen, FileCheck2, History,
-  ShoppingCart, PackagePlus, Inbox, PackageMinus, ScanSearch, Stamp, BookText,
+  Boxes, ShoppingCart, PackagePlus, Inbox, PackageMinus, ScanSearch, Stamp, BookText,
 } from 'lucide-react';
 
 /* Menu bar: only the two existing modules, Production and Inventory. */
@@ -21,6 +21,7 @@ export const NAV = [
     module: 'inventory',
     label: 'Inventory',
     items: [
+      { path: 'inventory/materials', color: 'teal', label: 'Raw Material Master', icon: Boxes, desc: 'Master list of raw materials' },
       { path: 'inventory/purchase', label: 'Raw Material Purchase', icon: ShoppingCart, desc: 'Purchase requirements and purchase orders' },
       { path: 'inventory/stock-in', label: 'RM Stock In', icon: PackagePlus, desc: 'Receive GRN and add stock' },
       { path: 'inventory/requests', label: 'Production Material Requests', icon: Inbox, desc: 'Requests coming from Production' },

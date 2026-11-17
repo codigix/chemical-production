@@ -1,8 +1,11 @@
 import { useState } from 'react';
 import { Gauge, AlertTriangle, CheckCircle2, ShoppingCart, PackageOpen, Hourglass, ArrowRight, Boxes } from 'lucide-react';
-import { useStore, requirementFor, available } from '../../store/StoreContext';
+import { useStore, requirementFor, available, ledgerBalance, ledgerEntries } from '../../store/StoreContext';
 import { Card, CardHeader, PageHeader, Button, Badge, Meter, Mono, EmptyState, fmtNum, fmtDate, cx, useToast } from '../../components/ui';
 import { navigate } from '../../router';
+import { RowActions, ConfirmDialog } from '../../components/actions';
+import OrderDetail from '../../components/OrderDetail';
+import { orderEditBlock } from '../../store/rules';
 
 const CHECKABLE = ['Draft', 'Shortage', 'Ready', 'Awaiting Purchase'];
 
@@ -11,10 +14,20 @@ export default function RmStockAvailability({ params }) {
   const toast = useToast();
   const queue = state.orders.filter((o) => CHECKABLE.includes(o.status));
   const [sel, setSel] = useState(params.order && queue.some((o) => o.id === params.order) ? params.order : queue[0]?.id);
+  const [viewing, setViewing] = useState(null);
+  const [deleting, setDeleting] = useState(null);
   const order = state.orders.find((o) => o.id === sel && CHECKABLE.includes(o.status)) || queue[0];
   const sop = order && state.sops.find((s) => s.id === order.sopId);
   const lines = order ? requirementFor(state, order) : [];
   const short = lines.some((l) => l.shortage > 0);
+  /* Cross-check every line against the Stock Ledger */
+  const checks = lines.map((l) => {
+    const m = state.materials.find((x) => x.code === l.code);
+    const ledger = ledgerBalance(state, l.code);
+    const onHand = m?.onHand ?? 0;
+    return { ...l, ledger, onHand, reserved: m?.reserved ?? 0, entries: ledgerEntries(state, l.code), ok: Math.abs(ledger - onHand) < 0.001 };
+  });
+  const ledgerOk = checks.every((c) => c.ok);
   const waiting = order?.status === 'Awaiting Purchase';
 
   const sendPurchase = () => {
@@ -71,7 +84,7 @@ export default function RmStockAvailability({ params }) {
                   </span>
                   <div>
                     <div className="text-lg font-bold">
-                      {waiting ? 'Waiting for purchase' : short ? `Shortage on ${lines.filter((l) => l.shortage > 0).length} material(s)` : 'All raw materials available'}
+                      {waiting ? 'Waiting for purchase' : short ? `Shortage on ${lines.filter((l) => l.shortage > 0).length} material(s)` : !ledgerOk ? 'Stock does not match the ledger' : 'All materials available · ledger verified'}
                     </div>
                     <div className="text-sm text-slate-600 dark:text-slate-300">
                       <Mono>{order.id}</Mono> · {sop?.product} · {order.batches} × {fmtNum(sop?.batchSize)} {sop?.unit}
@@ -79,38 +92,78 @@ export default function RmStockAvailability({ params }) {
                     </div>
                   </div>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <RowActions onView={() => setViewing(order.id)} onEdit={() => navigate('production/orders', { edit: order.id })} onDelete={() => setDeleting(order)}
+                    editBlock={orderEditBlock(order)} deleteBlock={orderEditBlock(order)} />
                   {waiting ? (
                     <Button variant="ghost" icon={ArrowRight} onClick={() => navigate('production/history')}>Track request</Button>
                   ) : short ? (
                     <Button variant="warn" icon={ShoppingCart} onClick={sendPurchase}>Send purchase requirement</Button>
                   ) : (
-                    <Button variant="production" icon={PackageOpen} onClick={requestPull}>Request material pull out</Button>
+                    <Button variant="production" icon={PackageOpen} onClick={requestPull} disabled={!ledgerOk}
+                      title={ledgerOk ? undefined : 'Fix the stock ledger mismatch before requesting material'}>Request material pull out</Button>
                   )}
                 </div>
               </div>
             </div>
 
             <Card>
-              <CardHeader title="Requirement vs available" subtitle="Available = on hand − already reserved for other orders" icon={Gauge} />
-              <div className="hidden gap-3 border-b border-slate-100 px-5 py-2.5 text-[0.6875rem] font-semibold uppercase tracking-wider text-slate-500 md:grid md:grid-cols-[1.4fr_repeat(3,0.6fr)_1fr] dark:border-white/[0.06]">
-                <span>Material</span><span>Required</span><span>Available</span><span>Shortage</span><span>Coverage</span>
-              </div>
-              <div className="divide-y divide-slate-100 dark:divide-white/[0.05]">
-                {lines.map((l) => (
-                  <div key={l.code} className="grid items-center gap-3 px-5 py-4 md:grid-cols-[1.4fr_repeat(3,0.6fr)_1fr]">
-                    <div><Mono className="text-slate-400">{l.code}</Mono><div className="font-medium">{l.name}</div></div>
-                    <Num label="Required" v={l.required} u={l.unit} />
-                    <Num label="Available" v={l.available} u={l.unit} />
-                    <Num label="Shortage" v={l.shortage} u={l.unit} danger={l.shortage > 0} />
-                    <div>
-                      <Meter value={l.available} max={l.required} />
-                      <div className={cx('mt-1 text-[0.6875rem] font-semibold', l.shortage > 0 ? 'text-rose-600' : 'text-emerald-600')}>
-                        {l.shortage > 0 ? `${Math.round((l.available / l.required) * 100)}% covered` : 'Fully covered'}
-                      </div>
-                    </div>
-                  </div>
-                ))}
+              <CardHeader title="Requirement vs stock ledger" icon={Gauge}
+                subtitle="Ledger stock = all IN − OUT in the Stock Ledger · Available = ledger stock − reserved for other orders"
+                action={<span className={cx('rounded-full px-2.5 py-1 text-xs font-semibold', ledgerOk ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300' : 'bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-300')}>
+                  {ledgerOk ? `Ledger verified · ${checks.length}/${checks.length}` : `${checks.filter((c) => !c.ok).length} ledger mismatch`}
+                </span>} />
+              <div className="overflow-x-auto scrollbar-thin">
+                <table className="w-full min-w-[60rem] text-left text-sm">
+                  <thead>
+                    <tr className="bg-prod-50/70 text-[0.75rem] font-semibold text-slate-700 dark:bg-white/[0.03] dark:text-slate-300">
+                      <th className="px-4 py-2.5">Material</th>
+                      <th className="px-4 py-2.5 text-right">Required</th>
+                      <th className="px-4 py-2.5 text-right">Ledger stock</th>
+                      <th className="px-4 py-2.5 text-right">Reserved</th>
+                      <th className="px-4 py-2.5 text-right">Available</th>
+                      <th className="px-4 py-2.5 text-right">Shortage</th>
+                      <th className="px-4 py-2.5">Ledger check</th>
+                      <th className="w-40 px-4 py-2.5">Coverage</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {checks.map((l) => (
+                      <tr key={l.code} className="border-t border-line dark:border-white/[0.05]">
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-1.5"><Mono className="text-slate-400">{l.code}</Mono>
+                            <span className={cx('rounded px-1 text-[0.625rem] font-bold', l.group === 'PM' ? 'bg-orange-50 text-orange-600' : 'bg-prod-50 text-prod-500')}>{l.group}</span></div>
+                          <div className="font-medium">{l.name}</div>
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3 text-right tabular font-semibold">{fmtNum(l.required)} <span className="text-xs font-normal text-slate-400">{l.unit}</span></td>
+                        <td className="whitespace-nowrap px-4 py-3 text-right tabular">{fmtNum(l.ledger)} <span className="text-xs text-slate-400">{l.unit}</span></td>
+                        <td className="whitespace-nowrap px-4 py-3 text-right tabular text-indigo-600">{l.reserved ? fmtNum(l.reserved) : <span className="text-slate-300">0</span>}</td>
+                        <td className="whitespace-nowrap px-4 py-3 text-right tabular font-semibold">{fmtNum(l.available)}</td>
+                        <td className={cx('whitespace-nowrap px-4 py-3 text-right tabular font-semibold', l.shortage > 0 ? 'text-rose-600' : 'text-slate-400')}>{fmtNum(l.shortage)}</td>
+                        <td className="px-4 py-3">
+                          {l.entries === 0 && l.onHand === 0 ? (
+                            <span className="inline-flex items-center gap-1 text-xs font-semibold text-orange-600"><AlertTriangle size={13} />No stock entries</span>
+                          ) : l.ok ? (
+                            <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600"><CheckCircle2 size={13} />Matches ledger</span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-xs font-semibold text-rose-600" title={`Material record says ${l.onHand}, ledger says ${l.ledger}`}>
+                              <AlertTriangle size={13} />Record {fmtNum(l.onHand)} ≠ ledger
+                            </span>
+                          )}
+                          <button onClick={() => navigate('inventory/ledger', { code: l.code })} className="block text-[0.6875rem] font-semibold text-prod-500 hover:underline">
+                            {l.entries} entr{l.entries === 1 ? 'y' : 'ies'} · view ledger
+                          </button>
+                        </td>
+                        <td className="px-4 py-3">
+                          <Meter value={l.available} max={l.required} />
+                          <div className={cx('mt-1 text-[0.6875rem] font-semibold', l.shortage > 0 ? 'text-rose-600' : 'text-emerald-600')}>
+                            {l.shortage > 0 ? `${Math.round((l.available / l.required) * 100)}% covered` : 'Fully covered'}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </Card>
           </div>
@@ -118,6 +171,11 @@ export default function RmStockAvailability({ params }) {
           <Card><EmptyState icon={Gauge} title="No order selected" text="Create a production order first." /></Card>
         )}
       </div>
+
+      {viewing && <OrderDetail orderId={viewing} onClose={() => setViewing(null)} />}
+      <ConfirmDialog open={!!deleting} onClose={() => setDeleting(null)} title="Delete production order?"
+        message={deleting && <>Order <b>{deleting.id}</b> will be removed from the JSON data.</>}
+        onConfirm={() => { dispatch('DELETE_ORDER', { orderId: deleting.id }); toast(`Order ${deleting.id} deleted`); setSel(undefined); }} />
 
       <h2 className="mb-3 mt-8 text-sm font-bold uppercase tracking-wider text-slate-500">Live inventory snapshot</h2>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

@@ -4,6 +4,7 @@ import { useStore, available } from '../../store/StoreContext';
 import { Card, PageHeader, Button, Badge, Mono, Table, Stat, fmtDateTime, cx } from '../../components/ui';
 import RequestItems from '../../components/RequestItems';
 import { navigate } from '../../router';
+import { RequestRowActions } from '../../components/rowActions';
 
 export default function ProductionRequests() {
   const { state } = useStore();
@@ -46,12 +47,14 @@ export default function ProductionRequests() {
               : <span className="text-slate-300">—</span> },
             { key: 'at', label: 'Raised', render: (r) => <span className="whitespace-nowrap text-slate-500">{fmtDateTime(r.createdAt)}</span> },
             { key: 'st', label: 'Status', render: (r) => <Badge status={r.status} /> },
-            { key: 'a', label: '', align: 'right', render: (r) => {
-              if (r.status !== 'Pending') return null;
-              return r.type === 'PURCHASE'
-                ? <Button size="sm" variant="warn" icon={ShoppingCart} onClick={() => navigate('inventory/purchase')}>Raise PO</Button>
-                : <Button size="sm" variant="inventory" icon={PackageMinus} onClick={() => navigate('inventory/pull-out')}>Issue</Button>;
-            } },
+            { key: 'a', label: 'Actions', align: 'right', render: (r) => (
+              <div className="flex items-center justify-end gap-2">
+                {r.status === 'Pending' && (r.type === 'PURCHASE'
+                  ? <Button size="sm" variant="warn" icon={ShoppingCart} onClick={() => navigate('inventory/purchase')}>Raise PO</Button>
+                  : <Button size="sm" variant="inventory" icon={PackageMinus} onClick={() => navigate('inventory/pull-out')}>Issue</Button>)}
+                <RequestRowActions req={r} />
+              </div>
+            ) },
           ]}
         />
       </Card>

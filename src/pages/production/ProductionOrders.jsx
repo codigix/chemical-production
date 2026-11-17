@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ClipboardList, Plus, Search, Gauge, PackageCheck, FileCheck2, Eye } from 'lucide-react';
-import { useStore, requirementFor } from '../../store/StoreContext';
+import { ClipboardList, Plus, Search, Gauge, PackageCheck, FileCheck2, Save, Trash2, RotateCcw } from 'lucide-react';
+import { RowActions, ConfirmDialog } from '../../components/actions';
+import { orderEditBlock, materialTypeOf } from '../../store/rules';
+import { useStore, requirementFor, sopLines } from '../../store/StoreContext';
 import { Card, PageHeader, Button, Badge, Table, Modal, Field, Mono, inputCls, fmtDate, fmtNum, cx, useToast } from '../../components/ui';
 import OrderFlow from '../../components/OrderFlow';
 import OrderDetail from '../../components/OrderDetail';
@@ -17,9 +19,15 @@ export default function ProductionOrders({ params }) {
   const [creating, setCreating] = useState(!!params.new);
   const [viewing, setViewing] = useState(null);
   const today = new Date().toISOString().slice(0, 10);
-  const [form, setForm] = useState({ sopId: state.sops[0]?.id, batches: 1, plannedDate: today, priority: 'Medium' });
+  const blankForm = () => ({ sopId: state.sops[0]?.id, batches: 1, plannedDate: today, priority: 'Medium', lines: sopLines(state, state.sops[0]?.id, 1) });
+  const [form, setForm] = useState(blankForm);
 
-  useEffect(() => { if (params.new) setCreating(true); }, [params.new]);
+  useEffect(() => { if (params.new) { setEditingId(null); setForm(blankForm()); setCreating(true); } }, [params.new]); // eslint-disable-line react-hooks/exhaustive-deps
+  /* Opened from another screen with ?edit=PRD-xxxx */
+  useEffect(() => {
+    const o = params.edit && state.orders.find((x) => x.id === params.edit);
+    if (o && !orderEditBlock(o)) openEdit(o);
+  }, [params.edit]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const sopOf = (o) => state.sops.find((s) => s.id === o.sopId);
   const rows = useMemo(() => state.orders.filter((o) => {
@@ -28,23 +36,64 @@ export default function ProductionOrders({ params }) {
     return f && s;
   }), [state.orders, filter, q]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const preview = requirementFor(state, { ...form, batches: Number(form.batches) || 0 });
   const formSop = state.sops.find((s) => s.id === form.sopId);
+  /* Live requirement of the lines being edited (required vs available) */
+  const preview = requirementFor(state, { ...form, batches: Number(form.batches) || 0, lines: form.lines.filter((l) => l.code && Number(l.qty) > 0) });
+  const previewOf = (code) => preview.find((p) => p.code === code);
+  const sopStd = sopLines(state, form.sopId, form.batches);
+  const customised = JSON.stringify(sopStd.map((l) => [l.code, l.qty])) !== JSON.stringify(form.lines.map((l) => [l.code, Number(l.qty)]));
+  const validLines = form.lines.some((l) => l.code && Number(l.qty) > 0);
 
-  const create = () => {
-    dispatch('CREATE_ORDER', form);
+  const [editingId, setEditingId] = useState(null);
+  const [deleting, setDeleting] = useState(null);
+
+  const openNew = () => { setEditingId(null); setForm(blankForm()); setCreating(true); };
+  const openEdit = (o) => {
+    setEditingId(o.id);
+    setForm({ sopId: o.sopId, batches: o.batches, plannedDate: o.plannedDate, priority: o.priority, lines: o.lines?.length ? o.lines.map((l) => ({ ...l })) : sopLines(state, o.sopId, o.batches) });
+    setCreating(true);
+  };
+  /* Changing SOP or batches reloads the standard quantities */
+  const setRecipe = (patch) => {
+    const next = { ...form, ...patch };
+    setForm({ ...next, lines: sopLines(state, next.sopId, next.batches) });
+  };
+  const setLine = (i, patch) => setForm({ ...form, lines: form.lines.map((l, j) => (j === i ? { ...l, ...patch } : l)) });
+  const addLine = (group) => setForm({ ...form, lines: [...form.lines, { code: '', group, qty: '' }] });
+  const removeLine = (i) => setForm({ ...form, lines: form.lines.filter((_, j) => j !== i) });
+  const optionsFor = (group, i) => state.materials.filter((m) =>
+    (group === 'PM' ? materialTypeOf(m.type) === 'Packing Material' : materialTypeOf(m.type) === 'Raw Material')
+    && (m.active !== false || m.code === form.lines[i]?.code)
+    && !form.lines.some((l, j) => j !== i && l.code === m.code));
+
+  const save = () => {
+    if (editingId) {
+      dispatch('UPDATE_ORDER', { orderId: editingId, patch: form });
+      toast(`Order ${editingId} updated`);
+    } else {
+      dispatch('CREATE_ORDER', form);
+      toast('Production order created');
+    }
     setCreating(false);
-    toast('Production order created');
+    setEditingId(null);
   };
 
+  /* Next workflow step (if any) + View / Edit / Delete */
   const action = (o) => {
+    let next = null;
     if (['Draft', 'Shortage', 'Ready'].includes(o.status))
-      return <Button size="sm" variant="production" icon={Gauge} onClick={() => navigate('production/rm-stock', { order: o.id })}>Check RM</Button>;
-    if (o.status === 'Material Issued')
-      return <Button size="sm" variant="production" icon={PackageCheck} onClick={() => navigate('production/pull-out')}>Verify</Button>;
-    if (o.status === 'Production Verified')
-      return <Button size="sm" variant="production" icon={FileCheck2} onClick={() => navigate('production/sop-submission')}>Submit SOP</Button>;
-    return <Button size="sm" variant="ghost" icon={Eye} onClick={() => setViewing(o.id)}>View</Button>;
+      next = <Button size="sm" variant="production" icon={Gauge} onClick={() => navigate('production/rm-stock', { order: o.id })}>Check RM</Button>;
+    else if (o.status === 'Material Issued')
+      next = <Button size="sm" variant="production" icon={PackageCheck} onClick={() => navigate('production/pull-out')}>Verify</Button>;
+    else if (o.status === 'Production Verified')
+      next = <Button size="sm" variant="production" icon={FileCheck2} onClick={() => navigate('production/sop-submission')}>Submit SOP</Button>;
+    const block = orderEditBlock(o);
+    return (
+      <div className="flex items-center justify-end gap-2">
+        {next}
+        <RowActions onView={() => setViewing(o.id)} onEdit={() => openEdit(o)} onDelete={() => setDeleting(o)} editBlock={block} deleteBlock={block} />
+      </div>
+    );
   };
 
   const countFor = (f) => f === 'All' ? state.orders.length : f === 'In progress' ? state.orders.filter((o) => IN_PROGRESS.includes(o.status)).length : state.orders.filter((o) => o.status === f).length;
@@ -52,7 +101,7 @@ export default function ProductionOrders({ params }) {
   return (
     <>
       <PageHeader module="production" icon={ClipboardList} title="Production Orders" subtitle="Plan production against an SOP and push it through the material workflow."
-        actions={<Button variant="production" icon={Plus} onClick={() => setCreating(true)}>New production order</Button>} />
+        actions={<Button variant="production" icon={Plus} onClick={openNew}>New production order</Button>} />
 
       <Card>
         <div className="flex flex-col gap-3 border-b border-slate-100 p-4 lg:flex-row lg:items-center lg:justify-between dark:border-white/[0.06]">
@@ -82,21 +131,21 @@ export default function ProductionOrders({ params }) {
             { key: 'priority', label: 'Priority', render: (o) => <Badge status={o.priority} /> },
             { key: 'progress', label: 'Progress', className: 'min-w-[10.625rem]', render: (o) => <OrderFlow status={o.status} compact /> },
             { key: 'status', label: 'Status', render: (o) => <Badge status={o.status} /> },
-            { key: 'act', label: '', align: 'right', render: action },
+            { key: 'act', label: 'Actions', align: 'right', render: action },
           ]}
         />
       </Card>
 
-      <Modal open={creating} onClose={() => setCreating(false)} title="New production order" subtitle="Pick an SOP; the raw material requirement is calculated for you." width="max-w-2xl"
-        footer={<><Button variant="ghost" onClick={() => setCreating(false)}>Cancel</Button><Button variant="production" icon={Plus} onClick={create} disabled={!form.sopId || form.batches < 1}>Create order</Button></>}>
+      <Modal open={creating} onClose={() => setCreating(false)} title={editingId ? `Edit order · ${editingId}` : 'New production order'} subtitle="Pick an SOP; the material list is filled from it. Add, remove or change materials for this order." width="max-w-3xl"
+        footer={<><Button variant="ghost" onClick={() => setCreating(false)}>Cancel</Button><Button variant="production" icon={editingId ? Save : Plus} onClick={save} disabled={!form.sopId || form.batches < 1 || !validLines}>{editingId ? 'Save changes' : 'Create order'}</Button></>}>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="SOP / Product" className="sm:col-span-2">
-            <select className={inputCls} value={form.sopId} onChange={(e) => setForm({ ...form, sopId: e.target.value })}>
+            <select className={inputCls} value={form.sopId} onChange={(e) => setRecipe({ sopId: e.target.value })}>
               {state.sops.map((s) => <option key={s.id} value={s.id}>{s.id} · {s.product} ({s.version})</option>)}
             </select>
           </Field>
           <Field label="Number of batches" hint={formSop ? `1 batch = ${fmtNum(formSop.batchSize)} ${formSop.unit}` : ''}>
-            <input type="number" min="1" className={inputCls} value={form.batches} onChange={(e) => setForm({ ...form, batches: e.target.value })} />
+            <input type="number" min="1" className={inputCls} value={form.batches} onChange={(e) => setRecipe({ batches: e.target.value })} />
           </Field>
           <Field label="Planned date">
             <input type="date" className={inputCls} value={form.plannedDate} onChange={(e) => setForm({ ...form, plannedDate: e.target.value })} />
@@ -110,20 +159,74 @@ export default function ProductionOrders({ params }) {
             </div>
           </Field>
         </div>
-        <div className="mt-5 rounded-lg bg-slate-50 p-4 dark:bg-white/[0.03]">
-          <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">Requirement preview</div>
-          {preview.map((l) => (
-            <div key={l.code} className="flex items-center justify-between py-1.5 text-sm">
-              <span>{l.name}</span>
-              <span className={cx('tabular font-semibold', l.shortage > 0 && 'text-rose-600')}>
-                {fmtNum(l.required)} {l.unit}{l.shortage > 0 && <span className="ml-2 text-xs font-medium">(short {fmtNum(l.shortage)})</span>}
-              </span>
+        {/* Editable material list for this order */}
+        <div className="mt-5">
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Material requirement</span>
+              {customised
+                ? <span className="rounded-full bg-orange-50 px-2 py-0.5 text-[0.6875rem] font-semibold text-orange-700 dark:bg-orange-500/10 dark:text-orange-300">Customised for this order</span>
+                : <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[0.6875rem] font-semibold text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">As per SOP</span>}
             </div>
-          ))}
+            {customised && <Button size="sm" variant="ghost" icon={RotateCcw} onClick={() => setForm({ ...form, lines: sopStd })}>Reset to SOP</Button>}
+          </div>
+          <div className="overflow-x-auto rounded-lg border border-line dark:border-white/[0.07]">
+            <table className="w-full min-w-[42rem] text-sm">
+              <thead>
+                <tr className="bg-prod-50/70 text-left text-[0.75rem] font-semibold text-slate-700 dark:bg-white/[0.03] dark:text-slate-300">
+                  <th className="w-12 px-3 py-2">Type</th><th className="px-3 py-2">Material</th><th className="w-32 px-3 py-2">Qty for order</th>
+                  <th className="w-28 px-3 py-2 text-right">Available</th><th className="w-24 px-3 py-2 text-right">Shortage</th><th className="w-10 px-2 py-2" />
+                </tr>
+              </thead>
+              <tbody>
+                {form.lines.map((l, i) => {
+                  const p = previewOf(l.code);
+                  const m = state.materials.find((x) => x.code === l.code);
+                  return (
+                    <tr key={i} className="border-t border-line dark:border-white/[0.05]">
+                      <td className="px-3 py-2"><span className={cx('rounded px-1.5 py-0.5 text-[0.625rem] font-bold', l.group === 'PM' ? 'bg-orange-50 text-orange-600' : 'bg-prod-50 text-prod-500')}>{l.group}</span></td>
+                      <td className="px-3 py-2">
+                        <select className={cx(inputCls, 'h-9')} value={l.code} onChange={(e) => setLine(i, { code: e.target.value })} aria-label="Material">
+                          <option value="">Select {l.group === 'PM' ? 'packing material' : 'raw material'}…</option>
+                          {optionsFor(l.group, i).map((x) => <option key={x.code} value={x.code}>{x.code} · {x.name} ({x.unit})</option>)}
+                        </select>
+                      </td>
+                      <td className="px-3 py-2">
+                        <div className="flex items-center gap-1.5">
+                          <input type="number" min="0" step="any" className={cx(inputCls, 'h-9')} value={l.qty} onChange={(e) => setLine(i, { qty: e.target.value })} aria-label="Quantity" />
+                          <span className="w-8 text-xs text-slate-400">{m?.unit}</span>
+                        </div>
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-2 text-right tabular text-slate-600 dark:text-slate-300">{p ? fmtNum(p.available) : '—'}</td>
+                      <td className={cx('whitespace-nowrap px-3 py-2 text-right tabular font-semibold', p?.shortage > 0 ? 'text-rose-600' : 'text-slate-300')}>{p ? fmtNum(p.shortage) : '—'}</td>
+                      <td className="px-2 py-2">
+                        <button type="button" onClick={() => removeLine(i)} className="rounded-md p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-500" aria-label="Remove material" title="Remove material">
+                          <Trash2 size={15} />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+                {form.lines.length === 0 && (
+                  <tr><td colSpan={6} className="px-3 py-6 text-center text-sm text-slate-400">No materials. Add a line or reset to SOP.</td></tr>
+                )}
+              </tbody>
+            </table>
+            <div className="flex flex-wrap gap-2 border-t border-line p-2 dark:border-white/[0.07]">
+              <Button size="sm" variant="soft" icon={Plus} onClick={() => addLine('RM')}>Add raw material</Button>
+              <Button size="sm" variant="soft" icon={Plus} onClick={() => addLine('PM')}>Add packing material</Button>
+            </div>
+          </div>
+          <p className="mt-1.5 text-xs text-slate-500">Changing the SOP or number of batches reloads the standard quantities. This list is what the RM check, pull out and batch sheet use.</p>
         </div>
       </Modal>
 
       {viewing && <OrderDetail orderId={viewing} onClose={() => setViewing(null)} />}
+
+      <ConfirmDialog open={!!deleting} onClose={() => setDeleting(null)}
+        title="Delete production order?"
+        message={deleting && <>Order <b>{deleting.id}</b> ({sopOf(deleting)?.product}) will be removed from the JSON data. This cannot be undone.</>}
+        onConfirm={() => { dispatch('DELETE_ORDER', { orderId: deleting.id }); toast(`Order ${deleting.id} deleted`); }} />
     </>
   );
 }

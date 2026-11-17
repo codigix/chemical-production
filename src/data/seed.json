@@ -1,54 +1,1539 @@
 {
   "materials": [
-    { "code": "RM-001", "name": "Sulphuric Acid 98%",    "unit": "kg", "onHand": 2400, "reserved": 0, "reorder": 600,  "location": "Tank T-01" },
-    { "code": "RM-002", "name": "Sodium Chloride",       "unit": "kg", "onHand": 3100, "reserved": 0, "reorder": 800,  "location": "Bay A-03" },
-    { "code": "RM-003", "name": "Caustic Soda Flakes",   "unit": "kg", "onHand": 420,  "reserved": 0, "reorder": 500,  "location": "Bay A-07" },
-    { "code": "RM-004", "name": "Hydrogen Peroxide 50%", "unit": "L",  "onHand": 860,  "reserved": 0, "reorder": 300,  "location": "Tank T-04" },
-    { "code": "RM-005", "name": "Calcium Carbonate",     "unit": "kg", "onHand": 1750, "reserved": 0, "reorder": 400,  "location": "Bay B-02" },
-    { "code": "RM-006", "name": "Demineralised Water",   "unit": "L",  "onHand": 9000, "reserved": 0, "reorder": 2000, "location": "DM Plant" },
-    { "code": "RM-007", "name": "Citric Acid Anhydrous", "unit": "kg", "onHand": 140,  "reserved": 0, "reorder": 200,  "location": "Bay C-01" },
-    { "code": "RM-008", "name": "Sodium Silicate",       "unit": "kg", "onHand": 980,  "reserved": 0, "reorder": 250,  "location": "Bay B-05" }
+    {
+      "code": "RM-001",
+      "name": "Sulphuric Acid 98%",
+      "unit": "kg",
+      "type": "Raw Material",
+      "category": "Acid",
+      "grade": "Technical 98%",
+      "hsn": "28070010",
+      "hazard": "Hazardous",
+      "supplier": "Shree Ram Acids",
+      "rate": 9.5,
+      "onHand": 2050,
+      "reserved": 450,
+      "reorder": 600,
+      "location": "Tank T-01"
+    },
+    {
+      "code": "RM-002",
+      "name": "Sodium Chloride",
+      "unit": "kg",
+      "type": "Raw Material",
+      "category": "Salt",
+      "grade": "Industrial, 99% NaCl",
+      "hsn": "25010020",
+      "hazard": "Non-hazardous",
+      "supplier": "Deepak Chem Traders",
+      "rate": 4.2,
+      "onHand": 2580,
+      "reserved": 520,
+      "reorder": 800,
+      "location": "Bay A-03"
+    },
+    {
+      "code": "RM-003",
+      "name": "Caustic Soda Flakes",
+      "unit": "kg",
+      "type": "Raw Material",
+      "category": "Alkali",
+      "grade": "Flakes 98%",
+      "hsn": "28151100",
+      "hazard": "Hazardous",
+      "supplier": "Gujarat Alkalies Ltd.",
+      "rate": 38,
+      "onHand": 700,
+      "reserved": 260,
+      "reorder": 500,
+      "location": "Bay A-07"
+    },
+    {
+      "code": "RM-004",
+      "name": "Hydrogen Peroxide 50%",
+      "unit": "L",
+      "type": "Raw Material",
+      "category": "Oxidiser",
+      "grade": "50% w/w",
+      "hsn": "28470000",
+      "hazard": "Hazardous",
+      "supplier": "National Peroxide Co.",
+      "rate": 46,
+      "onHand": 1200,
+      "reserved": 700,
+      "reorder": 300,
+      "location": "Tank T-04"
+    },
+    {
+      "code": "RM-005",
+      "name": "Calcium Carbonate",
+      "unit": "kg",
+      "type": "Raw Material",
+      "category": "Mineral",
+      "grade": "Precipitated, 200 mesh",
+      "hsn": "28365000",
+      "hazard": "Non-hazardous",
+      "supplier": "Aarti Industrial Supply",
+      "rate": 7.8,
+      "onHand": 1750,
+      "reserved": 380,
+      "reorder": 400,
+      "location": "Bay B-02"
+    },
+    {
+      "code": "RM-006",
+      "name": "Demineralised Water",
+      "unit": "L",
+      "type": "Raw Material",
+      "category": "Solvent",
+      "grade": "< 5 µS/cm",
+      "hsn": "28539090",
+      "hazard": "Non-hazardous",
+      "supplier": "In-house DM plant",
+      "rate": 0.4,
+      "onHand": 7600,
+      "reserved": 1700,
+      "reorder": 2000,
+      "location": "DM Plant"
+    },
+    {
+      "code": "RM-007",
+      "name": "Citric Acid Anhydrous",
+      "unit": "kg",
+      "type": "Raw Material",
+      "category": "Additive",
+      "grade": "Anhydrous, food grade",
+      "hsn": "29181400",
+      "hazard": "Hazardous",
+      "supplier": "Aarti Industrial Supply",
+      "rate": 92,
+      "onHand": 140,
+      "reserved": 24,
+      "reorder": 200,
+      "location": "Bay C-01"
+    },
+    {
+      "code": "RM-008",
+      "name": "Sodium Silicate",
+      "unit": "kg",
+      "type": "Raw Material",
+      "category": "Additive",
+      "grade": "Liquid, ratio 2.0",
+      "hsn": "28391900",
+      "hazard": "Hazardous",
+      "supplier": "Deepak Chem Traders",
+      "rate": 21,
+      "onHand": 980,
+      "reserved": 80,
+      "reorder": 250,
+      "location": "Bay B-05"
+    },
+    {
+      "code": "RM-101",
+      "name": "Alphox 200 / N.P 9.5",
+      "unit": "kg",
+      "type": "Raw Material",
+      "category": "Additive",
+      "grade": "Nonionic surfactant",
+      "hsn": "34021300",
+      "hazard": "Hazardous",
+      "supplier": "Aarti Industrial Supply",
+      "rate": 145,
+      "onHand": 400,
+      "reserved": 0,
+      "reorder": 100,
+      "location": "Drum yard D-1"
+    },
+    {
+      "code": "RM-102",
+      "name": "CDEA",
+      "unit": "kg",
+      "type": "Raw Material",
+      "category": "Additive",
+      "grade": "Coconut diethanolamide",
+      "hsn": "34029099",
+      "hazard": "Hazardous",
+      "supplier": "Deepak Chem Traders",
+      "rate": 160,
+      "onHand": 250,
+      "reserved": 0,
+      "reorder": 60,
+      "location": "Drum yard D-2"
+    },
+    {
+      "code": "RM-103",
+      "name": "Butyl Cellosolve",
+      "unit": "kg",
+      "type": "Raw Material",
+      "category": "Solvent",
+      "grade": "Butyl glycol 99%",
+      "hsn": "29094300",
+      "hazard": "Hazardous",
+      "supplier": "Deepak Chem Traders",
+      "rate": 125,
+      "onHand": 200,
+      "reserved": 0,
+      "reorder": 50,
+      "location": "Solvent store S-1"
+    },
+    {
+      "code": "RM-104",
+      "name": "Perfume",
+      "unit": "kg",
+      "type": "Raw Material",
+      "category": "Additive",
+      "grade": "Lemon fresh",
+      "hsn": "33029090",
+      "hazard": "Non-hazardous",
+      "supplier": "Aarti Industrial Supply",
+      "rate": 900,
+      "onHand": 30,
+      "reserved": 0,
+      "reorder": 8,
+      "location": "Cabinet C-2"
+    },
+    {
+      "code": "RM-105",
+      "name": "Color",
+      "unit": "kg",
+      "type": "Raw Material",
+      "category": "Additive",
+      "grade": "Liquid dye, green",
+      "hsn": "32041990",
+      "hazard": "Non-hazardous",
+      "supplier": "Aarti Industrial Supply",
+      "rate": 650,
+      "onHand": 10,
+      "reserved": 0,
+      "reorder": 2,
+      "location": "Cabinet C-2"
+    },
+    {
+      "code": "RM-106",
+      "name": "EDTA",
+      "unit": "kg",
+      "type": "Raw Material",
+      "category": "Additive",
+      "grade": "Disodium EDTA",
+      "hsn": "29224990",
+      "hazard": "Hazardous",
+      "supplier": "Deepak Chem Traders",
+      "rate": 210,
+      "onHand": 25,
+      "reserved": 0,
+      "reorder": 5,
+      "location": "Bay C-03"
+    },
+    {
+      "code": "RM-107",
+      "name": "Formulene",
+      "unit": "kg",
+      "type": "Raw Material",
+      "category": "Additive",
+      "grade": "Preservative",
+      "hsn": "38089400",
+      "hazard": "Hazardous",
+      "supplier": "Aarti Industrial Supply",
+      "rate": 480,
+      "onHand": 20,
+      "reserved": 0,
+      "reorder": 5,
+      "location": "Cabinet C-3"
+    },
+    {
+      "code": "RM-108",
+      "name": "TEA",
+      "unit": "kg",
+      "type": "Raw Material",
+      "category": "Alkali",
+      "grade": "Triethanolamine 99%",
+      "hsn": "29221500",
+      "hazard": "Hazardous",
+      "supplier": "Gujarat Alkalies Ltd.",
+      "rate": 135,
+      "onHand": 80,
+      "reserved": 0,
+      "reorder": 20,
+      "location": "Drum yard D-3"
+    },
+    {
+      "code": "RM-109",
+      "name": "CAPB",
+      "unit": "kg",
+      "type": "Raw Material",
+      "category": "Additive",
+      "grade": "Cocamidopropyl betaine 30%",
+      "hsn": "34023900",
+      "hazard": "Hazardous",
+      "supplier": "Deepak Chem Traders",
+      "rate": 115,
+      "onHand": 300,
+      "reserved": 0,
+      "reorder": 120,
+      "location": "Drum yard D-4"
+    },
+    {
+      "code": "PM-001",
+      "name": "5 Ltr Oval Can",
+      "unit": "Nos",
+      "type": "Packing Material",
+      "category": "General",
+      "grade": "",
+      "hsn": "",
+      "hazard": "Non-hazardous",
+      "supplier": "Plastipack Containers",
+      "rate": 28,
+      "onHand": 400,
+      "reserved": 0,
+      "reorder": 100,
+      "location": "PM Store"
+    },
+    {
+      "code": "PM-002",
+      "name": "Plug",
+      "unit": "Nos",
+      "type": "Packing Material",
+      "category": "General",
+      "grade": "",
+      "hsn": "",
+      "hazard": "Non-hazardous",
+      "supplier": "Plastipack Containers",
+      "rate": 1.2,
+      "onHand": 500,
+      "reserved": 0,
+      "reorder": 100,
+      "location": "PM Store"
+    },
+    {
+      "code": "PM-003",
+      "name": "Cap",
+      "unit": "Nos",
+      "type": "Packing Material",
+      "category": "General",
+      "grade": "",
+      "hsn": "",
+      "hazard": "Non-hazardous",
+      "supplier": "Plastipack Containers",
+      "rate": 2.5,
+      "onHand": 500,
+      "reserved": 0,
+      "reorder": 100,
+      "location": "PM Store"
+    },
+    {
+      "code": "PM-004",
+      "name": "Unit Label",
+      "unit": "Nos",
+      "type": "Packing Material",
+      "category": "General",
+      "grade": "",
+      "hsn": "",
+      "hazard": "Non-hazardous",
+      "supplier": "Print Point Labels",
+      "rate": 1.8,
+      "onHand": 600,
+      "reserved": 0,
+      "reorder": 150,
+      "location": "PM Store"
+    },
+    {
+      "code": "PM-005",
+      "name": "Corrugated Box",
+      "unit": "Nos",
+      "type": "Packing Material",
+      "category": "General",
+      "grade": "",
+      "hsn": "",
+      "hazard": "Non-hazardous",
+      "supplier": "Shree Corrugators",
+      "rate": 22,
+      "onHand": 120,
+      "reserved": 0,
+      "reorder": 30,
+      "location": "PM Store"
+    },
+    {
+      "code": "PM-006",
+      "name": "Brown Tape",
+      "unit": "Roll",
+      "type": "Packing Material",
+      "category": "General",
+      "grade": "",
+      "hsn": "",
+      "hazard": "Non-hazardous",
+      "supplier": "Shree Corrugators",
+      "rate": 35,
+      "onHand": 20,
+      "reserved": 0,
+      "reorder": 5,
+      "location": "PM Store"
+    }
   ],
   "sops": [
     {
-      "id": "SOP-101", "product": "Sodium Sulphate (Technical)", "version": "v2.1",
-      "batchSize": 1000, "unit": "kg", "duration": "6 h",
-      "materials": [ { "code": "RM-001", "qty": 450 }, { "code": "RM-002", "qty": 520 }, { "code": "RM-006", "qty": 800 } ],
-      "steps": ["Charge DM water to reactor R-1", "Add NaCl under agitation", "Dose H2SO4 slowly below 60 °C", "Hold 2 h, filter and dry"]
+      "id": "SOP-101",
+      "product": "Sodium Sulphate (Technical)",
+      "version": "v2.1",
+      "batchSize": 1000,
+      "unit": "kg",
+      "duration": "6 h",
+      "materials": [
+        {
+          "code": "RM-001",
+          "qty": 450
+        },
+        {
+          "code": "RM-002",
+          "qty": 520
+        },
+        {
+          "code": "RM-006",
+          "qty": 800
+        }
+      ],
+      "steps": [
+        "Charge DM water to reactor R-1",
+        "Add NaCl under agitation",
+        "Dose H2SO4 slowly below 60 °C",
+        "Hold 2 h, filter and dry"
+      ],
+      "packing": []
     },
     {
-      "id": "SOP-204", "product": "Bleaching Liquor HP-35", "version": "v1.4",
-      "batchSize": 500, "unit": "L", "duration": "3 h",
-      "materials": [ { "code": "RM-004", "qty": 350 }, { "code": "RM-006", "qty": 150 }, { "code": "RM-008", "qty": 40 }, { "code": "RM-007", "qty": 12 } ],
-      "steps": ["Pre-cool blending vessel to 15 °C", "Charge DM water and stabiliser", "Add H2O2 under slow stirring", "QC check pH 3.5 to 4.0"]
+      "id": "SOP-204",
+      "product": "Bleaching Liquor HP-35",
+      "version": "v1.4",
+      "batchSize": 500,
+      "unit": "L",
+      "duration": "3 h",
+      "materials": [
+        {
+          "code": "RM-004",
+          "qty": 350
+        },
+        {
+          "code": "RM-006",
+          "qty": 150
+        },
+        {
+          "code": "RM-008",
+          "qty": 40
+        },
+        {
+          "code": "RM-007",
+          "qty": 12
+        }
+      ],
+      "steps": [
+        "Pre-cool blending vessel to 15 °C",
+        "Charge DM water and stabiliser",
+        "Add H2O2 under slow stirring",
+        "QC check pH 3.5 to 4.0"
+      ],
+      "packing": []
     },
     {
-      "id": "SOP-310", "product": "Neutralising Agent NX", "version": "v3.0",
-      "batchSize": 800, "unit": "kg", "duration": "5 h",
-      "materials": [ { "code": "RM-003", "qty": 260 }, { "code": "RM-005", "qty": 380 }, { "code": "RM-006", "qty": 600 } ],
-      "steps": ["Dissolve caustic flakes in DM water", "Cool to ambient", "Disperse CaCO3 slurry", "Homogenise 45 min and pack"]
+      "id": "SOP-310",
+      "product": "Neutralising Agent NX",
+      "version": "v3.0",
+      "batchSize": 800,
+      "unit": "kg",
+      "duration": "5 h",
+      "materials": [
+        {
+          "code": "RM-003",
+          "qty": 260
+        },
+        {
+          "code": "RM-005",
+          "qty": 380
+        },
+        {
+          "code": "RM-006",
+          "qty": 600
+        }
+      ],
+      "steps": [
+        "Dissolve caustic flakes in DM water",
+        "Cool to ambient",
+        "Disperse CaCO3 slurry",
+        "Homogenise 45 min and pack"
+      ],
+      "packing": []
+    },
+    {
+      "id": "SOP-501",
+      "product": "SURVEK R1",
+      "version": "v1.0",
+      "batchSize": 500,
+      "unit": "kg",
+      "duration": "4 h",
+      "packSize": "5000 ML",
+      "refBatch": 200,
+      "materials": [
+        {
+          "code": "RM-006",
+          "qty": 340.5
+        },
+        {
+          "code": "RM-101",
+          "qty": 40
+        },
+        {
+          "code": "RM-102",
+          "qty": 25
+        },
+        {
+          "code": "RM-103",
+          "qty": 20
+        },
+        {
+          "code": "RM-104",
+          "qty": 3
+        },
+        {
+          "code": "RM-105",
+          "qty": 0.5
+        },
+        {
+          "code": "RM-106",
+          "qty": 1
+        },
+        {
+          "code": "RM-107",
+          "qty": 2
+        },
+        {
+          "code": "RM-108",
+          "qty": 8
+        },
+        {
+          "code": "RM-109",
+          "qty": 60
+        }
+      ],
+      "packing": [
+        {
+          "code": "PM-001",
+          "qty": 100
+        },
+        {
+          "code": "PM-002",
+          "qty": 100
+        },
+        {
+          "code": "PM-003",
+          "qty": 100
+        },
+        {
+          "code": "PM-004",
+          "qty": 100
+        },
+        {
+          "code": "PM-005",
+          "qty": 25
+        },
+        {
+          "code": "PM-006",
+          "qty": 2
+        }
+      ],
+      "steps": [
+        "Charge DM water to mixing vessel",
+        "Add Alphox 200, CDEA and CAPB under slow stirring",
+        "Add Butyl Cellosolve, EDTA and TEA; mix 20 min",
+        "Add Formulene, perfume and color",
+        "QC check: pH, viscosity, appearance",
+        "Fill 5 Ltr oval cans, plug, cap, label and box"
+      ]
     }
   ],
   "orders": [
-    { "id": "PRD-1001", "sopId": "SOP-101", "batches": 2, "plannedDate": "2026-11-18", "priority": "High",   "status": "Draft", "createdAt": "2026-11-15T09:20:00", "history": [] },
-    { "id": "PRD-1002", "sopId": "SOP-310", "batches": 2, "plannedDate": "2026-11-19", "priority": "Medium", "status": "Draft", "createdAt": "2026-11-15T11:05:00", "history": [] },
-    { "id": "PRD-1003", "sopId": "SOP-204", "batches": 1, "plannedDate": "2026-11-17", "priority": "Low",    "status": "Draft", "createdAt": "2026-11-16T08:40:00", "history": [] }
+    {
+      "id": "PRD-1001",
+      "sopId": "SOP-101",
+      "batches": 2,
+      "plannedDate": "2026-11-24",
+      "priority": "Medium",
+      "status": "Draft",
+      "createdAt": "2026-11-17T09:10:00",
+      "history": [
+        {
+          "status": "Draft",
+          "t": "2026-11-17T09:10:00",
+          "by": "Production"
+        }
+      ]
+    },
+    {
+      "id": "PRD-1003",
+      "sopId": "SOP-204",
+      "batches": 3,
+      "plannedDate": "2026-11-22",
+      "priority": "High",
+      "status": "Shortage",
+      "createdAt": "2026-11-16T14:00:00",
+      "lastCheck": {
+        "t": "2026-11-16T14:20:00",
+        "short": true
+      },
+      "history": [
+        {
+          "status": "Draft",
+          "t": "2026-11-16T14:00:00",
+          "by": "Production"
+        },
+        {
+          "status": "Shortage",
+          "t": "2026-11-16T14:20:00",
+          "by": "Production"
+        }
+      ]
+    },
+    {
+      "id": "PRD-1004",
+      "sopId": "SOP-101",
+      "batches": 1,
+      "plannedDate": "2026-11-20",
+      "priority": "Medium",
+      "status": "Ready",
+      "createdAt": "2026-11-16T10:30:00",
+      "lastCheck": {
+        "t": "2026-11-16T10:45:00",
+        "short": false
+      },
+      "history": [
+        {
+          "status": "Draft",
+          "t": "2026-11-16T10:30:00",
+          "by": "Production"
+        },
+        {
+          "status": "Ready",
+          "t": "2026-11-16T10:45:00",
+          "by": "Production"
+        }
+      ]
+    },
+    {
+      "id": "PRD-1005",
+      "sopId": "SOP-310",
+      "batches": 1,
+      "plannedDate": "2026-11-19",
+      "priority": "High",
+      "status": "Pull Out Requested",
+      "createdAt": "2026-11-15T16:00:00",
+      "pullOutReqId": "MR-0002",
+      "lastCheck": {
+        "t": "2026-11-16T09:00:00",
+        "short": false
+      },
+      "history": [
+        {
+          "status": "Draft",
+          "t": "2026-11-15T16:00:00",
+          "by": "Production"
+        },
+        {
+          "status": "Ready",
+          "t": "2026-11-16T09:00:00",
+          "by": "Production"
+        },
+        {
+          "status": "Pull Out Requested",
+          "t": "2026-11-16T09:05:00",
+          "by": "Production"
+        }
+      ]
+    },
+    {
+      "id": "PRD-1002",
+      "sopId": "SOP-310",
+      "batches": 2,
+      "plannedDate": "2026-11-23",
+      "priority": "Medium",
+      "status": "Awaiting Purchase",
+      "createdAt": "2026-11-15T11:05:00",
+      "purchaseReqId": "MR-0001",
+      "lastCheck": {
+        "t": "2026-11-15T11:30:00",
+        "short": true
+      },
+      "history": [
+        {
+          "status": "Draft",
+          "t": "2026-11-15T11:05:00",
+          "by": "Production"
+        },
+        {
+          "status": "Shortage",
+          "t": "2026-11-15T11:30:00",
+          "by": "Production"
+        },
+        {
+          "status": "Awaiting Purchase",
+          "t": "2026-11-15T11:32:00",
+          "by": "Production"
+        }
+      ]
+    },
+    {
+      "id": "PRD-1006",
+      "sopId": "SOP-204",
+      "batches": 1,
+      "plannedDate": "2026-11-18",
+      "priority": "Low",
+      "status": "Material Issued",
+      "createdAt": "2026-11-14T09:30:00",
+      "pullOutReqId": "MR-0003",
+      "lastCheck": {
+        "t": "2026-11-15T10:00:00",
+        "short": false
+      },
+      "history": [
+        {
+          "status": "Draft",
+          "t": "2026-11-14T09:30:00",
+          "by": "Production"
+        },
+        {
+          "status": "Ready",
+          "t": "2026-11-15T10:00:00",
+          "by": "Production"
+        },
+        {
+          "status": "Pull Out Requested",
+          "t": "2026-11-15T10:02:00",
+          "by": "Production"
+        },
+        {
+          "status": "Material Issued",
+          "t": "2026-11-16T11:15:00",
+          "by": "Inventory"
+        }
+      ]
+    },
+    {
+      "id": "PRD-1007",
+      "sopId": "SOP-101",
+      "batches": 1,
+      "plannedDate": "2026-11-17",
+      "priority": "High",
+      "status": "Production Verified",
+      "createdAt": "2026-11-13T09:00:00",
+      "pullOutReqId": "MR-0004",
+      "lastCheck": {
+        "t": "2026-11-14T09:00:00",
+        "short": false
+      },
+      "history": [
+        {
+          "status": "Draft",
+          "t": "2026-11-13T09:00:00",
+          "by": "Production"
+        },
+        {
+          "status": "Ready",
+          "t": "2026-11-14T09:00:00",
+          "by": "Production"
+        },
+        {
+          "status": "Pull Out Requested",
+          "t": "2026-11-14T09:03:00",
+          "by": "Production"
+        },
+        {
+          "status": "Material Issued",
+          "t": "2026-11-14T14:40:00",
+          "by": "Inventory"
+        },
+        {
+          "status": "Production Verified",
+          "t": "2026-11-15T08:30:00",
+          "by": "Production Supervisor"
+        }
+      ]
+    },
+    {
+      "id": "PRD-1008",
+      "sopId": "SOP-310",
+      "batches": 1,
+      "plannedDate": "2026-11-16",
+      "priority": "Medium",
+      "status": "SOP Submitted",
+      "createdAt": "2026-11-12T10:00:00",
+      "pullOutReqId": "MR-0005",
+      "lastCheck": {
+        "t": "2026-11-13T09:15:00",
+        "short": false
+      },
+      "submission": {
+        "actualYield": 790,
+        "notes": "Slight foaming during CaCO3 addition, controlled.",
+        "t": "2026-11-15T17:45:00"
+      },
+      "history": [
+        {
+          "status": "Draft",
+          "t": "2026-11-12T10:00:00",
+          "by": "Production"
+        },
+        {
+          "status": "Ready",
+          "t": "2026-11-13T09:15:00",
+          "by": "Production"
+        },
+        {
+          "status": "Pull Out Requested",
+          "t": "2026-11-13T09:17:00",
+          "by": "Production"
+        },
+        {
+          "status": "Material Issued",
+          "t": "2026-11-13T15:00:00",
+          "by": "Inventory"
+        },
+        {
+          "status": "Production Verified",
+          "t": "2026-11-14T08:45:00",
+          "by": "Production Supervisor"
+        },
+        {
+          "status": "SOP Submitted",
+          "t": "2026-11-15T17:45:00",
+          "by": "Production"
+        }
+      ]
+    },
+    {
+      "id": "PRD-1009",
+      "sopId": "SOP-204",
+      "batches": 1,
+      "plannedDate": "2026-11-15",
+      "priority": "Low",
+      "status": "Stock Verified",
+      "createdAt": "2026-11-11T09:20:00",
+      "pullOutReqId": "MR-0006",
+      "lastCheck": {
+        "t": "2026-11-12T09:00:00",
+        "short": false
+      },
+      "submission": {
+        "actualYield": 495,
+        "notes": "pH 3.7 at QC.",
+        "t": "2026-11-14T16:30:00"
+      },
+      "stockCheck": {
+        "by": "Stock Person",
+        "remarks": "All containers returned and labelled.",
+        "t": "2026-11-15T11:10:00",
+        "checks": [
+          "Issued quantity matches SOP consumption",
+          "No excess raw material left on the shop floor",
+          "Empty containers returned and labelled",
+          "Batch record and yield entered correctly"
+        ]
+      },
+      "history": [
+        {
+          "status": "Draft",
+          "t": "2026-11-11T09:20:00",
+          "by": "Production"
+        },
+        {
+          "status": "Ready",
+          "t": "2026-11-12T09:00:00",
+          "by": "Production"
+        },
+        {
+          "status": "Pull Out Requested",
+          "t": "2026-11-12T09:02:00",
+          "by": "Production"
+        },
+        {
+          "status": "Material Issued",
+          "t": "2026-11-12T13:30:00",
+          "by": "Inventory"
+        },
+        {
+          "status": "Production Verified",
+          "t": "2026-11-13T08:40:00",
+          "by": "Production Supervisor"
+        },
+        {
+          "status": "SOP Submitted",
+          "t": "2026-11-14T16:30:00",
+          "by": "Production"
+        },
+        {
+          "status": "Stock Verified",
+          "t": "2026-11-15T11:10:00",
+          "by": "Stock Person"
+        }
+      ]
+    },
+    {
+      "id": "PRD-1010",
+      "sopId": "SOP-101",
+      "batches": 1,
+      "plannedDate": "2026-11-12",
+      "priority": "High",
+      "status": "Accepted",
+      "createdAt": "2026-11-09T09:00:00",
+      "pullOutReqId": "MR-0007",
+      "lastCheck": {
+        "t": "2026-11-10T09:00:00",
+        "short": false
+      },
+      "submission": {
+        "actualYield": 985,
+        "notes": "Batch dried to 0.4% moisture.",
+        "t": "2026-11-11T18:00:00"
+      },
+      "stockCheck": {
+        "by": "Stock Person",
+        "remarks": "OK",
+        "t": "2026-11-12T11:00:00",
+        "checks": [
+          "Issued quantity matches SOP consumption",
+          "No excess raw material left on the shop floor",
+          "Empty containers returned and labelled",
+          "Batch record and yield entered correctly"
+        ]
+      },
+      "acceptance": {
+        "by": "Office Manager",
+        "signature": null,
+        "t": "2026-11-12T17:20:00"
+      },
+      "history": [
+        {
+          "status": "Draft",
+          "t": "2026-11-09T09:00:00",
+          "by": "Production"
+        },
+        {
+          "status": "Ready",
+          "t": "2026-11-10T09:00:00",
+          "by": "Production"
+        },
+        {
+          "status": "Pull Out Requested",
+          "t": "2026-11-10T09:02:00",
+          "by": "Production"
+        },
+        {
+          "status": "Material Issued",
+          "t": "2026-11-10T12:00:00",
+          "by": "Inventory"
+        },
+        {
+          "status": "Production Verified",
+          "t": "2026-11-10T15:30:00",
+          "by": "Production Supervisor"
+        },
+        {
+          "status": "SOP Submitted",
+          "t": "2026-11-11T18:00:00",
+          "by": "Production"
+        },
+        {
+          "status": "Stock Verified",
+          "t": "2026-11-12T11:00:00",
+          "by": "Stock Person"
+        },
+        {
+          "status": "Accepted",
+          "t": "2026-11-12T17:20:00",
+          "by": "Office Manager"
+        }
+      ]
+    }
   ],
-  "requests": [],
-  "purchases": [],
+  "requests": [
+    {
+      "id": "MR-0002",
+      "type": "PULL_OUT",
+      "orderId": "PRD-1005",
+      "status": "Pending",
+      "createdAt": "2026-11-16T09:05:00",
+      "items": [
+        {
+          "code": "RM-003",
+          "qty": 260
+        },
+        {
+          "code": "RM-005",
+          "qty": 380
+        },
+        {
+          "code": "RM-006",
+          "qty": 600
+        }
+      ]
+    },
+    {
+      "id": "MR-0001",
+      "type": "PURCHASE",
+      "orderId": "PRD-1002",
+      "status": "PO Raised",
+      "purchaseId": "PUR-0003",
+      "createdAt": "2026-11-15T11:32:00",
+      "items": [
+        {
+          "code": "RM-003",
+          "qty": 80
+        }
+      ]
+    },
+    {
+      "id": "MR-0003",
+      "type": "PULL_OUT",
+      "orderId": "PRD-1006",
+      "status": "Issued",
+      "issuedBy": "Stores In-charge",
+      "issuedAt": "2026-11-16T11:15:00",
+      "createdAt": "2026-11-15T10:02:00",
+      "items": [
+        {
+          "code": "RM-004",
+          "qty": 350
+        },
+        {
+          "code": "RM-006",
+          "qty": 150
+        },
+        {
+          "code": "RM-008",
+          "qty": 40
+        },
+        {
+          "code": "RM-007",
+          "qty": 12
+        }
+      ]
+    },
+    {
+      "id": "MR-0004",
+      "type": "PULL_OUT",
+      "orderId": "PRD-1007",
+      "status": "Received by Production",
+      "issuedBy": "Stores In-charge",
+      "issuedAt": "2026-11-14T14:40:00",
+      "receivedNote": "All drums sealed",
+      "createdAt": "2026-11-14T09:03:00",
+      "items": [
+        {
+          "code": "RM-001",
+          "qty": 450
+        },
+        {
+          "code": "RM-002",
+          "qty": 520
+        },
+        {
+          "code": "RM-006",
+          "qty": 800
+        }
+      ]
+    },
+    {
+      "id": "MR-0005",
+      "type": "PULL_OUT",
+      "orderId": "PRD-1008",
+      "status": "Received by Production",
+      "issuedBy": "Stores In-charge",
+      "issuedAt": "2026-11-13T15:00:00",
+      "receivedNote": "",
+      "createdAt": "2026-11-13T09:17:00",
+      "items": [
+        {
+          "code": "RM-003",
+          "qty": 260
+        },
+        {
+          "code": "RM-005",
+          "qty": 380
+        },
+        {
+          "code": "RM-006",
+          "qty": 600
+        }
+      ]
+    },
+    {
+      "id": "MR-0006",
+      "type": "PULL_OUT",
+      "orderId": "PRD-1009",
+      "status": "Received by Production",
+      "issuedBy": "Stores In-charge",
+      "issuedAt": "2026-11-12T13:30:00",
+      "receivedNote": "",
+      "createdAt": "2026-11-12T09:02:00",
+      "items": [
+        {
+          "code": "RM-004",
+          "qty": 350
+        },
+        {
+          "code": "RM-006",
+          "qty": 150
+        },
+        {
+          "code": "RM-008",
+          "qty": 40
+        },
+        {
+          "code": "RM-007",
+          "qty": 12
+        }
+      ]
+    },
+    {
+      "id": "MR-0007",
+      "type": "PULL_OUT",
+      "orderId": "PRD-1010",
+      "status": "Closed",
+      "issuedBy": "Stores In-charge",
+      "issuedAt": "2026-11-10T12:00:00",
+      "receivedNote": "",
+      "createdAt": "2026-11-10T09:02:00",
+      "items": [
+        {
+          "code": "RM-001",
+          "qty": 450
+        },
+        {
+          "code": "RM-002",
+          "qty": 520
+        },
+        {
+          "code": "RM-006",
+          "qty": 800
+        }
+      ]
+    }
+  ],
+  "purchases": [
+    {
+      "id": "PUR-0003",
+      "supplier": "Gujarat Alkalies Ltd.",
+      "expected": "2026-11-21",
+      "reqId": "MR-0001",
+      "status": "Ordered",
+      "date": "2026-11-16T10:00:00",
+      "items": [
+        {
+          "code": "RM-003",
+          "qty": 100,
+          "rate": 38
+        }
+      ]
+    },
+    {
+      "id": "PUR-0002",
+      "supplier": "National Peroxide Co.",
+      "expected": "2026-11-08",
+      "reqId": null,
+      "status": "Received",
+      "date": "2026-11-06T12:00:00",
+      "grnNo": "GRN-0002",
+      "receivedAt": "2026-11-08T15:10:00",
+      "items": [
+        {
+          "code": "RM-004",
+          "qty": 600,
+          "rate": 46
+        },
+        {
+          "code": "RM-002",
+          "qty": 500,
+          "rate": 4.2
+        }
+      ]
+    },
+    {
+      "id": "PUR-0001",
+      "supplier": "Shree Ram Acids",
+      "expected": "2026-11-05",
+      "reqId": null,
+      "status": "Received",
+      "date": "2026-11-03T10:00:00",
+      "grnNo": "GRN-0001",
+      "receivedAt": "2026-11-05T11:30:00",
+      "items": [
+        {
+          "code": "RM-001",
+          "qty": 500,
+          "rate": 9.5
+        },
+        {
+          "code": "RM-003",
+          "qty": 300,
+          "rate": 38
+        }
+      ]
+    }
+  ],
   "ledger": [
-    { "id": "LG-0001", "date": "2026-11-10T10:00:00", "code": "RM-001", "type": "IN", "qty": 2400, "ref": "Opening stock", "balance": 2400 },
-    { "id": "LG-0002", "date": "2026-11-10T10:00:00", "code": "RM-002", "type": "IN", "qty": 3100, "ref": "Opening stock", "balance": 3100 },
-    { "id": "LG-0003", "date": "2026-11-10T10:00:00", "code": "RM-003", "type": "IN", "qty": 420,  "ref": "Opening stock", "balance": 420 },
-    { "id": "LG-0004", "date": "2026-11-10T10:00:00", "code": "RM-004", "type": "IN", "qty": 860,  "ref": "Opening stock", "balance": 860 },
-    { "id": "LG-0005", "date": "2026-11-10T10:00:00", "code": "RM-005", "type": "IN", "qty": 1750, "ref": "Opening stock", "balance": 1750 },
-    { "id": "LG-0006", "date": "2026-11-10T10:00:00", "code": "RM-006", "type": "IN", "qty": 9000, "ref": "Opening stock", "balance": 9000 },
-    { "id": "LG-0007", "date": "2026-11-10T10:00:00", "code": "RM-007", "type": "IN", "qty": 140,  "ref": "Opening stock", "balance": 140 },
-    { "id": "LG-0008", "date": "2026-11-10T10:00:00", "code": "RM-008", "type": "IN", "qty": 980,  "ref": "Opening stock", "balance": 980 }
+    {
+      "id": "LG-0016",
+      "date": "2026-11-12T17:20:00",
+      "code": "RM-006",
+      "type": "OUT",
+      "qty": 800,
+      "ref": "PRD-1010 · MR-0007",
+      "balance": 7600
+    },
+    {
+      "id": "LG-0015",
+      "date": "2026-11-12T17:20:00",
+      "code": "RM-002",
+      "type": "OUT",
+      "qty": 520,
+      "ref": "PRD-1010 · MR-0007",
+      "balance": 2580
+    },
+    {
+      "id": "LG-0014",
+      "date": "2026-11-12T17:20:00",
+      "code": "RM-001",
+      "type": "OUT",
+      "qty": 450,
+      "ref": "PRD-1010 · MR-0007",
+      "balance": 2050
+    },
+    {
+      "id": "LG-0013",
+      "date": "2026-11-09T10:00:00",
+      "code": "RM-006",
+      "type": "IN",
+      "qty": 400,
+      "ref": "Direct stock in · Tanker challan DM-118",
+      "balance": 8400
+    },
+    {
+      "id": "LG-0012",
+      "date": "2026-11-08T15:10:00",
+      "code": "RM-002",
+      "type": "IN",
+      "qty": 500,
+      "ref": "GRN-0002 · PUR-0002",
+      "balance": 3100
+    },
+    {
+      "id": "LG-0011",
+      "date": "2026-11-08T15:10:00",
+      "code": "RM-004",
+      "type": "IN",
+      "qty": 600,
+      "ref": "GRN-0002 · PUR-0002",
+      "balance": 1200
+    },
+    {
+      "id": "LG-0010",
+      "date": "2026-11-05T11:30:00",
+      "code": "RM-003",
+      "type": "IN",
+      "qty": 300,
+      "ref": "GRN-0001 · PUR-0001",
+      "balance": 700
+    },
+    {
+      "id": "LG-0009",
+      "date": "2026-11-05T11:30:00",
+      "code": "RM-001",
+      "type": "IN",
+      "qty": 500,
+      "ref": "GRN-0001 · PUR-0001",
+      "balance": 2500
+    },
+    {
+      "id": "LG-0008",
+      "date": "2026-11-01T09:00:00",
+      "code": "RM-008",
+      "type": "IN",
+      "qty": 980,
+      "ref": "Opening stock",
+      "balance": 980
+    },
+    {
+      "id": "LG-0007",
+      "date": "2026-11-01T09:00:00",
+      "code": "RM-007",
+      "type": "IN",
+      "qty": 140,
+      "ref": "Opening stock",
+      "balance": 140
+    },
+    {
+      "id": "LG-0006",
+      "date": "2026-11-01T09:00:00",
+      "code": "RM-006",
+      "type": "IN",
+      "qty": 8000,
+      "ref": "Opening stock",
+      "balance": 8000
+    },
+    {
+      "id": "LG-0005",
+      "date": "2026-11-01T09:00:00",
+      "code": "RM-005",
+      "type": "IN",
+      "qty": 1750,
+      "ref": "Opening stock",
+      "balance": 1750
+    },
+    {
+      "id": "LG-0004",
+      "date": "2026-11-01T09:00:00",
+      "code": "RM-004",
+      "type": "IN",
+      "qty": 600,
+      "ref": "Opening stock",
+      "balance": 600
+    },
+    {
+      "id": "LG-0003",
+      "date": "2026-11-01T09:00:00",
+      "code": "RM-003",
+      "type": "IN",
+      "qty": 400,
+      "ref": "Opening stock",
+      "balance": 400
+    },
+    {
+      "id": "LG-0002",
+      "date": "2026-11-01T09:00:00",
+      "code": "RM-002",
+      "type": "IN",
+      "qty": 2600,
+      "ref": "Opening stock",
+      "balance": 2600
+    },
+    {
+      "id": "LG-0001",
+      "date": "2026-11-01T09:00:00",
+      "code": "RM-001",
+      "type": "IN",
+      "qty": 2000,
+      "ref": "Opening stock",
+      "balance": 2000
+    },
+    {
+      "id": "LG-0017",
+      "date": "2026-11-01T09:00:00",
+      "code": "RM-101",
+      "type": "IN",
+      "qty": 400,
+      "ref": "Opening stock",
+      "balance": 400
+    },
+    {
+      "id": "LG-0018",
+      "date": "2026-11-01T09:00:00",
+      "code": "RM-102",
+      "type": "IN",
+      "qty": 250,
+      "ref": "Opening stock",
+      "balance": 250
+    },
+    {
+      "id": "LG-0019",
+      "date": "2026-11-01T09:00:00",
+      "code": "RM-103",
+      "type": "IN",
+      "qty": 200,
+      "ref": "Opening stock",
+      "balance": 200
+    },
+    {
+      "id": "LG-0020",
+      "date": "2026-11-01T09:00:00",
+      "code": "RM-104",
+      "type": "IN",
+      "qty": 30,
+      "ref": "Opening stock",
+      "balance": 30
+    },
+    {
+      "id": "LG-0021",
+      "date": "2026-11-01T09:00:00",
+      "code": "RM-105",
+      "type": "IN",
+      "qty": 10,
+      "ref": "Opening stock",
+      "balance": 10
+    },
+    {
+      "id": "LG-0022",
+      "date": "2026-11-01T09:00:00",
+      "code": "RM-106",
+      "type": "IN",
+      "qty": 25,
+      "ref": "Opening stock",
+      "balance": 25
+    },
+    {
+      "id": "LG-0023",
+      "date": "2026-11-01T09:00:00",
+      "code": "RM-107",
+      "type": "IN",
+      "qty": 20,
+      "ref": "Opening stock",
+      "balance": 20
+    },
+    {
+      "id": "LG-0024",
+      "date": "2026-11-01T09:00:00",
+      "code": "RM-108",
+      "type": "IN",
+      "qty": 80,
+      "ref": "Opening stock",
+      "balance": 80
+    },
+    {
+      "id": "LG-0025",
+      "date": "2026-11-01T09:00:00",
+      "code": "RM-109",
+      "type": "IN",
+      "qty": 300,
+      "ref": "Opening stock",
+      "balance": 300
+    },
+    {
+      "id": "LG-0026",
+      "date": "2026-11-01T09:00:00",
+      "code": "PM-001",
+      "type": "IN",
+      "qty": 400,
+      "ref": "Opening stock",
+      "balance": 400
+    },
+    {
+      "id": "LG-0027",
+      "date": "2026-11-01T09:00:00",
+      "code": "PM-002",
+      "type": "IN",
+      "qty": 500,
+      "ref": "Opening stock",
+      "balance": 500
+    },
+    {
+      "id": "LG-0028",
+      "date": "2026-11-01T09:00:00",
+      "code": "PM-003",
+      "type": "IN",
+      "qty": 500,
+      "ref": "Opening stock",
+      "balance": 500
+    },
+    {
+      "id": "LG-0029",
+      "date": "2026-11-01T09:00:00",
+      "code": "PM-004",
+      "type": "IN",
+      "qty": 600,
+      "ref": "Opening stock",
+      "balance": 600
+    },
+    {
+      "id": "LG-0030",
+      "date": "2026-11-01T09:00:00",
+      "code": "PM-005",
+      "type": "IN",
+      "qty": 120,
+      "ref": "Opening stock",
+      "balance": 120
+    },
+    {
+      "id": "LG-0031",
+      "date": "2026-11-01T09:00:00",
+      "code": "PM-006",
+      "type": "IN",
+      "qty": 20,
+      "ref": "Opening stock",
+      "balance": 20
+    }
   ],
   "activity": [
-    { "t": "2026-11-16T08:40:00", "module": "production", "msg": "Production order PRD-1003 created" },
-    { "t": "2026-11-15T11:05:00", "module": "production", "msg": "Production order PRD-1002 created" },
-    { "t": "2026-11-10T10:00:00", "module": "inventory",  "msg": "Opening stock posted for 8 raw materials" }
-  ]
+    {
+      "t": "2026-11-17T09:10:00",
+      "module": "production",
+      "msg": "Production order PRD-1001 created"
+    },
+    {
+      "t": "2026-11-16T14:20:00",
+      "module": "production",
+      "msg": "RM check for PRD-1003: shortage found"
+    },
+    {
+      "t": "2026-11-16T11:15:00",
+      "module": "inventory",
+      "msg": "Material for PRD-1006 issued by Stores In-charge"
+    },
+    {
+      "t": "2026-11-16T10:45:00",
+      "module": "production",
+      "msg": "RM check for PRD-1004: all materials available"
+    },
+    {
+      "t": "2026-11-16T10:00:00",
+      "module": "inventory",
+      "msg": "Purchase order PUR-0003 raised with Gujarat Alkalies Ltd."
+    },
+    {
+      "t": "2026-11-16T09:05:00",
+      "module": "production",
+      "msg": "Material pull out MR-0002 requested for PRD-1005"
+    },
+    {
+      "t": "2026-11-15T17:45:00",
+      "module": "production",
+      "msg": "SOP for PRD-1008 submitted for office acceptance"
+    },
+    {
+      "t": "2026-11-15T11:32:00",
+      "module": "production",
+      "msg": "Purchase requirement MR-0001 sent to Inventory for PRD-1002"
+    },
+    {
+      "t": "2026-11-15T11:10:00",
+      "module": "inventory",
+      "msg": "Stock person Stock Person verified PRD-1009"
+    },
+    {
+      "t": "2026-11-15T08:30:00",
+      "module": "production",
+      "msg": "Issued material verified by Production for PRD-1007"
+    },
+    {
+      "t": "2026-11-12T17:20:00",
+      "module": "inventory",
+      "msg": "Office accepted SOP for PRD-1010. JSON stock records updated"
+    },
+    {
+      "t": "2026-11-09T10:00:00",
+      "module": "inventory",
+      "msg": "400 L of Demineralised Water stocked in"
+    },
+    {
+      "t": "2026-11-08T15:10:00",
+      "module": "inventory",
+      "msg": "GRN-0002 received against PUR-0002. RM stock updated"
+    },
+    {
+      "t": "2026-11-05T11:30:00",
+      "module": "inventory",
+      "msg": "GRN-0001 received against PUR-0001. RM stock updated"
+    },
+    {
+      "t": "2026-11-01T09:00:00",
+      "module": "inventory",
+      "msg": "Opening stock posted for 8 raw materials"
+    }
+  ],
+  "company": {
+    "name": "SURVEK INDUSTRIES PVT LTD"
+  }
 }

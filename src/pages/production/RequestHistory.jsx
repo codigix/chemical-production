@@ -3,6 +3,7 @@ import { History, ShoppingCart, PackageOpen, Layers } from 'lucide-react';
 import { useStore } from '../../store/StoreContext';
 import { Card, PageHeader, Badge, Mono, Table, Stat, inputCls, fmtDateTime, cx } from '../../components/ui';
 import RequestItems from '../../components/RequestItems';
+import { RequestRowActions } from '../../components/rowActions';
 
 export default function RequestHistory() {
   const { state } = useStore();
@@ -44,6 +45,7 @@ export default function RequestHistory() {
             { key: 'link', label: 'Linked', render: (r) => (r.purchaseId ? <Mono className="text-inv-600">{r.purchaseId}</Mono> : <span className="text-slate-300">—</span>) },
             { key: 'created', label: 'Raised', render: (r) => <span className="whitespace-nowrap text-slate-500">{fmtDateTime(r.createdAt)}</span> },
             { key: 'status', label: 'Status', render: (r) => <Badge status={r.status} /> },
+            { key: 'act', label: 'Actions', align: 'right', render: (r) => <RequestRowActions req={r} /> },
           ]}
         />
       </Card>

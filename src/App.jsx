@@ -11,6 +11,7 @@ import RmStockAvailability from './pages/production/RmStockAvailability';
 import PullOutRequest from './pages/production/PullOutRequest';
 import SopSubmission from './pages/production/SopSubmission';
 import RequestHistory from './pages/production/RequestHistory';
+import RawMaterialMaster from './pages/inventory/RawMaterialMaster';
 import RawMaterialPurchase from './pages/inventory/RawMaterialPurchase';
 import RmStockIn from './pages/inventory/RmStockIn';
 import ProductionRequests from './pages/inventory/ProductionRequests';
@@ -27,6 +28,7 @@ const PAGES = {
   'production/pull-out': PullOutRequest,
   'production/sop-submission': SopSubmission,
   'production/history': RequestHistory,
+  'inventory/materials': RawMaterialMaster,
   'inventory/purchase': RawMaterialPurchase,
   'inventory/stock-in': RmStockIn,
   'inventory/requests': ProductionRequests,

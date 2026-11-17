@@ -3,6 +3,7 @@ import { PackageMinus, CheckCircle2, AlertTriangle, MapPin, Truck } from 'lucide
 import { useStore, available } from '../../store/StoreContext';
 import { Card, CardHeader, PageHeader, Button, Badge, Modal, Field, Mono, Table, EmptyState, Meter, inputCls, fmtNum, fmtDateTime, cx, useToast } from '../../components/ui';
 import RequestItems from '../../components/RequestItems';
+import { RequestRowActions, IssueRowActions } from '../../components/rowActions';
 
 export default function RawMaterialPullOut() {
   const { state, dispatch } = useStore();
@@ -56,7 +57,10 @@ export default function RawMaterialPullOut() {
                 })}
               </div>
               <div className="border-t border-slate-100 p-4 dark:border-white/[0.06]">
-                <Button variant="inventory" icon={PackageMinus} className="w-full" disabled={!ok(r)} onClick={() => setIssue(r)}>Issue material</Button>
+                <div className="flex items-center gap-2">
+                  <Button variant="inventory" icon={PackageMinus} className="flex-1" disabled={!ok(r)} onClick={() => setIssue(r)}>Issue material</Button>
+                  <RequestRowActions req={r} />
+                </div>
               </div>
             </Card>
           ))}
@@ -75,6 +79,7 @@ export default function RawMaterialPullOut() {
             { key: 'b', label: 'Issued by', render: (r) => r.issuedBy },
             { key: 't', label: 'Issued', render: (r) => <span className="whitespace-nowrap text-slate-500">{fmtDateTime(r.issuedAt)}</span> },
             { key: 's', label: 'Status', render: (r) => <Badge status={r.status} /> },
+            { key: 'act', label: 'Actions', align: 'right', render: (r) => <IssueRowActions req={r} /> },
           ]}
         />
       </Card>

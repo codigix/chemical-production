@@ -4,6 +4,7 @@ import { useStore } from '../../store/StoreContext';
 import { Card, CardHeader, PageHeader, Button, Badge, Modal, Field, Mono, Table, EmptyState, inputCls, fmtNum, fmtDateTime, cx, useToast } from '../../components/ui';
 import RequestItems from '../../components/RequestItems';
 import OrderDetail from '../../components/OrderDetail';
+import { StockCheckRowActions } from '../../components/rowActions';
 
 const CHECKS = [
   'Issued quantity matches SOP consumption',
@@ -70,6 +71,7 @@ export default function StockVerification() {
             { key: 'r', label: 'Remarks', render: (o) => <span className="text-slate-500">{o.stockCheck.remarks || '—'}</span> },
             { key: 't', label: 'When', render: (o) => <span className="whitespace-nowrap text-slate-500">{fmtDateTime(o.stockCheck.t)}</span> },
             { key: 's', label: 'Status', render: (o) => <Badge status={o.status} /> },
+            { key: 'act', label: 'Actions', align: 'right', render: (o) => <StockCheckRowActions order={o} /> },
           ]}
         />
       </Card>

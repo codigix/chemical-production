@@ -4,6 +4,7 @@ import { useStore } from '../../store/StoreContext';
 import { Card, PageHeader, Button, Badge, Modal, Field, Mono, EmptyState, inputCls, fmtNum, fmtDateTime, cx, useToast } from '../../components/ui';
 import RequestItems from '../../components/RequestItems';
 import { navigate } from '../../router';
+import { RequestRowActions } from '../../components/rowActions';
 
 const TABS = [
   { key: 'Issued', label: 'Issued · verify now', icon: PackageCheck },
@@ -70,7 +71,10 @@ export default function PullOutRequest() {
               <div className="mt-4"><RequestItems items={r.items} max={6} /></div>
               <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4 text-xs text-slate-500 dark:border-white/[0.06]">
                 <span>Requested {fmtDateTime(r.createdAt)}{r.issuedBy && <> · issued by <b className="text-slate-700 dark:text-slate-200">{r.issuedBy}</b></>}</span>
-                {r.status === 'Issued' && <Button size="sm" variant="production" icon={PackageCheck} onClick={() => openVerify(r)}>Verify issued material</Button>}
+                <div className="flex items-center gap-2">
+                  {r.status === 'Issued' && <Button size="sm" variant="production" icon={PackageCheck} onClick={() => openVerify(r)}>Verify issued material</Button>}
+                  <RequestRowActions req={r} />
+                </div>
               </div>
             </Card>
           ))}

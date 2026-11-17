@@ -1,5 +1,6 @@
 import { useStore, requirementFor } from '../store/StoreContext';
-import { Modal, Badge, Mono, fmtNum, fmtDate, fmtDateTime, cx } from './ui';
+import { Modal, Badge, Mono, Button, fmtNum, fmtDate, fmtDateTime, cx } from './ui';
+import BatchSheet, { PrintButton } from './BatchSheet';
 import OrderFlow from './OrderFlow';
 
 /* Read-only order view shared by several screens */
@@ -11,8 +12,15 @@ export default function OrderDetail({ orderId, onClose }) {
   const lines = requirementFor(state, order);
 
   return (
-    <Modal open onClose={onClose} width="max-w-3xl" title={<span className="flex items-center gap-2"><Mono className="text-base">{order.id}</Mono><Badge status={order.status} /></span>} subtitle={`${sop?.product} · ${sop?.id} ${sop?.version}`}>
+    <Modal open onClose={onClose} width="max-w-4xl" title={<span className="flex items-center gap-2"><Mono className="text-base">{order.id}</Mono><Badge status={order.status} /></span>} subtitle={`${sop?.product} · ${sop?.id} ${sop?.version}`}
+      footer={<><PrintButton target={`sheet-${order.id}`} title={`Batch sheet ${order.id}`} /><Button variant="ghost" onClick={onClose}>Close</Button></>}>
       <div className="space-y-6">
+        <details className="group rounded-lg border border-line dark:border-white/[0.07]" open={!!order.submission}>
+          <summary className="cursor-pointer select-none px-4 py-3 text-sm font-semibold text-prod-500">
+            Batch sheet {order.submission ? `· Batch ${order.submission.batchNo || order.id}` : '(not submitted yet)'}
+          </summary>
+          <div className="overflow-x-auto border-t border-line p-3 dark:border-white/[0.07]"><BatchSheet sop={sop} order={order} id={`sheet-${order.id}`} /></div>
+        </details>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {[
             ['Batches', order.batches],
