@@ -1,0 +1,54 @@
+{
+  "materials": [
+    { "code": "RM-001", "name": "Sulphuric Acid 98%",    "unit": "kg", "onHand": 2400, "reserved": 0, "reorder": 600,  "location": "Tank T-01" },
+    { "code": "RM-002", "name": "Sodium Chloride",       "unit": "kg", "onHand": 3100, "reserved": 0, "reorder": 800,  "location": "Bay A-03" },
+    { "code": "RM-003", "name": "Caustic Soda Flakes",   "unit": "kg", "onHand": 420,  "reserved": 0, "reorder": 500,  "location": "Bay A-07" },
+    { "code": "RM-004", "name": "Hydrogen Peroxide 50%", "unit": "L",  "onHand": 860,  "reserved": 0, "reorder": 300,  "location": "Tank T-04" },
+    { "code": "RM-005", "name": "Calcium Carbonate",     "unit": "kg", "onHand": 1750, "reserved": 0, "reorder": 400,  "location": "Bay B-02" },
+    { "code": "RM-006", "name": "Demineralised Water",   "unit": "L",  "onHand": 9000, "reserved": 0, "reorder": 2000, "location": "DM Plant" },
+    { "code": "RM-007", "name": "Citric Acid Anhydrous", "unit": "kg", "onHand": 140,  "reserved": 0, "reorder": 200,  "location": "Bay C-01" },
+    { "code": "RM-008", "name": "Sodium Silicate",       "unit": "kg", "onHand": 980,  "reserved": 0, "reorder": 250,  "location": "Bay B-05" }
+  ],
+  "sops": [
+    {
+      "id": "SOP-101", "product": "Sodium Sulphate (Technical)", "version": "v2.1",
+      "batchSize": 1000, "unit": "kg", "duration": "6 h",
+      "materials": [ { "code": "RM-001", "qty": 450 }, { "code": "RM-002", "qty": 520 }, { "code": "RM-006", "qty": 800 } ],
+      "steps": ["Charge DM water to reactor R-1", "Add NaCl under agitation", "Dose H2SO4 slowly below 60 °C", "Hold 2 h, filter and dry"]
+    },
+    {
+      "id": "SOP-204", "product": "Bleaching Liquor HP-35", "version": "v1.4",
+      "batchSize": 500, "unit": "L", "duration": "3 h",
+      "materials": [ { "code": "RM-004", "qty": 350 }, { "code": "RM-006", "qty": 150 }, { "code": "RM-008", "qty": 40 }, { "code": "RM-007", "qty": 12 } ],
+      "steps": ["Pre-cool blending vessel to 15 °C", "Charge DM water and stabiliser", "Add H2O2 under slow stirring", "QC check pH 3.5 to 4.0"]
+    },
+    {
+      "id": "SOP-310", "product": "Neutralising Agent NX", "version": "v3.0",
+      "batchSize": 800, "unit": "kg", "duration": "5 h",
+      "materials": [ { "code": "RM-003", "qty": 260 }, { "code": "RM-005", "qty": 380 }, { "code": "RM-006", "qty": 600 } ],
+      "steps": ["Dissolve caustic flakes in DM water", "Cool to ambient", "Disperse CaCO3 slurry", "Homogenise 45 min and pack"]
+    }
+  ],
+  "orders": [
+    { "id": "PRD-1001", "sopId": "SOP-101", "batches": 2, "plannedDate": "2026-11-18", "priority": "High",   "status": "Draft", "createdAt": "2026-11-15T09:20:00", "history": [] },
+    { "id": "PRD-1002", "sopId": "SOP-310", "batches": 2, "plannedDate": "2026-11-19", "priority": "Medium", "status": "Draft", "createdAt": "2026-11-15T11:05:00", "history": [] },
+    { "id": "PRD-1003", "sopId": "SOP-204", "batches": 1, "plannedDate": "2026-11-17", "priority": "Low",    "status": "Draft", "createdAt": "2026-11-16T08:40:00", "history": [] }
+  ],
+  "requests": [],
+  "purchases": [],
+  "ledger": [
+    { "id": "LG-0001", "date": "2026-11-10T10:00:00", "code": "RM-001", "type": "IN", "qty": 2400, "ref": "Opening stock", "balance": 2400 },
+    { "id": "LG-0002", "date": "2026-11-10T10:00:00", "code": "RM-002", "type": "IN", "qty": 3100, "ref": "Opening stock", "balance": 3100 },
+    { "id": "LG-0003", "date": "2026-11-10T10:00:00", "code": "RM-003", "type": "IN", "qty": 420,  "ref": "Opening stock", "balance": 420 },
+    { "id": "LG-0004", "date": "2026-11-10T10:00:00", "code": "RM-004", "type": "IN", "qty": 860,  "ref": "Opening stock", "balance": 860 },
+    { "id": "LG-0005", "date": "2026-11-10T10:00:00", "code": "RM-005", "type": "IN", "qty": 1750, "ref": "Opening stock", "balance": 1750 },
+    { "id": "LG-0006", "date": "2026-11-10T10:00:00", "code": "RM-006", "type": "IN", "qty": 9000, "ref": "Opening stock", "balance": 9000 },
+    { "id": "LG-0007", "date": "2026-11-10T10:00:00", "code": "RM-007", "type": "IN", "qty": 140,  "ref": "Opening stock", "balance": 140 },
+    { "id": "LG-0008", "date": "2026-11-10T10:00:00", "code": "RM-008", "type": "IN", "qty": 980,  "ref": "Opening stock", "balance": 980 }
+  ],
+  "activity": [
+    { "t": "2026-11-16T08:40:00", "module": "production", "msg": "Production order PRD-1003 created" },
+    { "t": "2026-11-15T11:05:00", "module": "production", "msg": "Production order PRD-1002 created" },
+    { "t": "2026-11-10T10:00:00", "module": "inventory",  "msg": "Opening stock posted for 8 raw materials" }
+  ]
+}

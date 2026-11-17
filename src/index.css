@@ -1,0 +1,55 @@
+@import "tailwindcss";
+
+/* Class-based dark mode (toggled from the top bar). */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  /* Brand primary: royal blue (#2E37A4). Used by both modules. */
+  --color-prod-50: #eef0fa;
+  --color-prod-100: #dcdff5;
+  --color-prod-500: #2e37a4;
+  --color-prod-600: #262e8e;
+  --color-prod-700: #1f2678;
+
+  /* Inventory shares the same brand blue so the whole ERP reads as one product */
+  --color-inv-50: #eef0fa;
+  --color-inv-100: #dcdff5;
+  --color-inv-500: #2e37a4;
+  --color-inv-600: #262e8e;
+  --color-inv-700: #1f2678;
+
+  /* Neutral ink + canvas */
+  --color-ink-950: #0b0d1a;
+  --color-ink-900: #12152a;
+  --color-ink-800: #1b1f3a;
+  --color-ink-700: #2a2f52;
+  --color-canvas: #f6f7fb;
+  --color-line: #e7e8ef;
+}
+
+/* Lighter brand blue in dark mode so it keeps contrast on dark surfaces */
+.dark {
+  --color-prod-500: #6f78e8;
+  --color-inv-500: #6f78e8;
+  --color-prod-100: #c9cdf7;
+  --color-inv-100: #c9cdf7;
+}
+
+@layer base {
+  /* Global UI scale: 90% of the browser default (16px → 14.4px).
+     All sizes are in rem, so text, spacing and boxes shrink together. Change this one value to resize the whole UI. */
+  html { font-size: 90%; -webkit-font-smoothing: antialiased; }
+  body {
+    @apply bg-canvas text-slate-800 font-sans text-[0.875rem] dark:bg-ink-950 dark:text-slate-100;
+  }
+  .tabular { font-variant-numeric: tabular-nums; }
+}
+
+.scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
+.scrollbar-thin::-webkit-scrollbar-thumb { background: rgb(148 163 184 / 0.35); border-radius: 99px; }
+
+@keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.animate-rise { animation: rise 0.25s ease-out both; }
