@@ -134,7 +134,16 @@ function addMaterial(s, fields) {
   - a product name typed that has no SOP → a new SOP (v1.0) is created from the order's lines
 */
 function resolveManual(s, p) {
-  const lines = (p.lines || []).map((l) => ({ ...l }));
+  const lines = resolveLineMaterials(s, p.lines);
+  let sopId = s.sops.some((x) => x.id === p.sopId) ? p.sopId : '';
+  /* No valid SOP: always end up with one — typed name, or a placeholder name */
+  if (!sopId) sopId = sopForProduct(s, (p.productName || '').trim() || 'Untitled product', lines, p.batches);
+  return { sopId, lines };
+}
+
+/* Lines with a typed (new) material name get a real code: existing material with that name, or a new master entry */
+function resolveLineMaterials(s, input) {
+  const lines = (input || []).map((l) => ({ ...l }));
   lines.forEach((l) => {
     const name = (l.newName || '').trim();
     if (l.code || !name || !(Number(l.qty) > 0)) return;
@@ -144,10 +153,14 @@ function resolveManual(s, p) {
       type: l.group === 'PM' ? 'Packing Material' : 'Raw Material', category: 'General', hazard: 'Non-hazardous',
     });
   });
-  let sopId = s.sops.some((x) => x.id === p.sopId) ? p.sopId : '';
-  /* No valid SOP: always end up with one — typed name, or a placeholder name */
-  if (!sopId) sopId = sopForProduct(s, (p.productName || '').trim() || 'Untitled product', lines, p.batches);
-  return { sopId, lines };
+  return lines;
+}
+
+/* SOP form: ingredient / packing lines typed manually are added to the Raw Material Master */
+function sopWithMaterials(s, sop) {
+  const fix = (lines, group) => resolveLineMaterials(s, (lines || []).map((l) => ({ ...l, group })))
+    .filter((l) => l.code).map((l) => ({ code: l.code, qty: l.qty }));
+  return { ...sop, materials: fix(sop.materials, 'RM'), packing: fix(sop.packing, 'PM') };
 }
 
 /* Find the SOP for a product name, or create a v1.0 SOP from order lines */
@@ -183,7 +196,7 @@ function reducer(state, action) {
     }
     case 'CREATE_SOP': {
       const id = nextId(s.sops, 'SOP', 400);
-      s.sops.push({ id, ...p.sop });
+      s.sops.push({ id, ...sopWithMaterials(s, p.sop) });
       log(s, 'production', `SOP ${id} · ${p.sop.product} added`);
       return s;
     }
@@ -368,7 +381,7 @@ function reducer(state, action) {
     }
     case 'UPDATE_SOP': {
       const i = s.sops.findIndex((x) => x.id === p.id);
-      s.sops[i] = { ...s.sops[i], ...p.sop, id: p.id };
+      s.sops[i] = { ...s.sops[i], ...sopWithMaterials(s, p.sop), id: p.id };
       log(s, 'production', `SOP ${p.id} edited`);
       return s;
     }

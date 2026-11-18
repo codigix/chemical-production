@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { BookOpenCheck, Plus, Trash2, Save, Search, FlaskConical, Package, ListOrdered } from 'lucide-react';
+import { BookOpenCheck, Plus, Trash2, Save, Search, FlaskConical, Package } from 'lucide-react';
 import { useStore } from '../../store/StoreContext';
 import { Card, PageHeader, Button, Modal, Field, Mono, Table, inputCls, fmtNum, cx, useToast } from '../../components/ui';
 import { RowActions, ConfirmDialog } from '../../components/actions';
 import BatchSheet, { PrintButton } from '../../components/BatchSheet';
+import MaterialCombo from '../../components/MaterialCombo';
 import { sopEditBlock, sopDeleteBlock, materialTypeOf, isActive } from '../../store/rules';
 
 const blank = {
@@ -41,7 +42,9 @@ export default function SopManagement() {
     setOpen(true);
   };
 
-  const clean = (lines) => lines.filter((l) => l.code && Number(l.qty) > 0).map((l) => ({ code: l.code, qty: n3(l.qty) }));
+  /* keep master materials and manually typed new ones (the store adds new ones to the master) */
+  const clean = (lines) => lines.filter((l) => (l.code || l.newName) && Number(l.qty) > 0)
+    .map((l) => (l.code ? { code: l.code, qty: n3(l.qty) } : { code: '', newName: l.newName, unit: l.unit, qty: n3(l.qty) }));
   const save = () => {
     const sop = {
       product: f.product.trim(), version: f.version, batchSize: Number(f.batchSize), unit: f.unit, duration: f.duration,
@@ -59,7 +62,8 @@ export default function SopManagement() {
   /* Editable BOM table used for both raw and packing material */
   const LineTable = ({ field, options, qtyLabel, showRef }) => {
     const lines = f[field];
-    const setLine = (i, patch) => setF({ ...f, [field]: lines.map((x, j) => (j === i ? { ...x, ...patch } : x)) });
+    /* functional update so a line change never overwrites newer edits */
+    const setLine = (i, patch) => setF((cur) => ({ ...cur, [field]: cur[field].map((x, j) => (j === i ? { ...x, ...patch } : x)) }));
     const used = (code, i) => lines.some((x, j) => j !== i && x.code === code);
     return (
       <div className="overflow-x-auto rounded-lg border border-line dark:border-white/[0.07]">
@@ -78,12 +82,22 @@ export default function SopManagement() {
               <tr key={i} className="border-t border-line dark:border-white/[0.05]">
                 <td className="px-3 py-2 text-slate-400">{i + 1}</td>
                 <td className="px-3 py-2">
-                  <select className={cx(inputCls, 'h-9')} value={l.code} onChange={(e) => setLine(i, { code: e.target.value })} aria-label="Material">
-                    <option value="">Select…</option>
-                    {options.map((m) => <option key={m.code} value={m.code} disabled={used(m.code, i)}>{m.code} · {m.name} ({m.unit})</option>)}
-                  </select>
+                  {/* type / search the master, or type a new name (added to the Raw Material Master on save) */}
+                  <MaterialCombo options={options.filter((m) => !used(m.code, i))} all={state.materials} value={l.code} newName={l.newName}
+                    onChange={(code) => setLine(i, { code, newName: undefined, unit: undefined })}
+                    onNew={(name) => setLine(i, { code: '', newName: name, unit: l.unit || (field === 'packing' ? 'nos' : 'kg') })}
+                    placeholder={`Type or search ${field === 'packing' ? 'packing material' : 'ingredient'}…`} />
                 </td>
-                <td className="px-3 py-2"><input type="number" min="0" step="any" className={cx(inputCls, 'h-9')} value={l.qty} onChange={(e) => setLine(i, { qty: e.target.value })} aria-label="Quantity" /></td>
+                <td className="px-3 py-2">
+                  <div className="flex items-center gap-1.5">
+                    <input type="number" min="0" step="any" className={cx(inputCls, 'h-9 min-w-[5rem] flex-1')} value={l.qty} onChange={(e) => setLine(i, { qty: e.target.value })} aria-label="Quantity" />
+                    {!l.code && l.newName
+                      ? <select className="h-9 rounded-md border border-sky-300 bg-white px-1 text-xs dark:bg-ink-900" value={l.unit || 'kg'} onChange={(e) => setLine(i, { unit: e.target.value })} aria-label="Unit">
+                        {['kg', 'L', 'g', 'mL', 'nos', 'MT'].map((u) => <option key={u}>{u}</option>)}
+                      </select>
+                      : <span className="w-7 text-xs text-slate-400">{mat(l.code)?.unit}</span>}
+                  </div>
+                </td>
                 {showRef && (
                   <td className="px-3 py-2 text-right tabular text-slate-600 dark:text-slate-300">
                     {Number(f.batchSize) > 0 && Number(f.refBatch) > 0 && l.qty !== '' ? fmtNum(n3(l.qty * f.refBatch / f.batchSize)) : '—'}
@@ -187,18 +201,7 @@ export default function SopManagement() {
         <Section icon={Package}>Packing material{f.packSize ? ` for ${f.packSize} pack` : ''}</Section>
         {LineTable({ field: 'packing', options: packMaterials, qtyLabel: 'Std qty per batch', showRef: false })}
 
-        <Section icon={ListOrdered}>Process steps</Section>
-        <div className="space-y-2">
-          {f.steps.map((st, i) => (
-            <div key={i} className="flex gap-2">
-              <span className="grid h-10 w-8 shrink-0 place-items-center text-sm font-semibold text-slate-400">{i + 1}</span>
-              <input className={inputCls} placeholder={`Step ${i + 1}`} value={st} onChange={(e) => setF({ ...f, steps: f.steps.map((x, j) => (j === i ? e.target.value : x)) })} />
-              <button type="button" className="rounded-md px-2 text-slate-400 hover:bg-rose-50 hover:text-rose-500" aria-label="Remove step"
-                onClick={() => setF({ ...f, steps: f.steps.filter((_, j) => j !== i) })}><Trash2 size={15} /></button>
-            </div>
-          ))}
-          <Button size="sm" variant="soft" icon={Plus} onClick={() => setF({ ...f, steps: [...f.steps, ''] })}>Add step</Button>
-        </div>
+        {/* Process steps section removed from the form; existing steps on an SOP are kept unchanged */}
       </Modal>
     </>
   );

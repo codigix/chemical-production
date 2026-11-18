@@ -49,7 +49,7 @@ export default function RmStockAvailability({ params }) {
     <>
       <PageHeader module="production" icon={Gauge} title="RM Stock Availability" subtitle="Compare an order's raw material requirement with live Inventory stock." />
 
-      <div className="grid gap-6 xl:grid-cols-[340px_1fr]">
+      <div className="grid gap-6 xl:grid-cols-[300px_minmax(0,1fr)]">
         <Card className="h-fit">
           <CardHeader title="Orders to check" subtitle={`${queue.length} waiting`} icon={Boxes} />
           {queue.length === 0 ? (
@@ -74,13 +74,13 @@ export default function RmStockAvailability({ params }) {
         </Card>
 
         {order ? (
-          <div className="space-y-6">
+          <div className="min-w-0 space-y-6">
             <div className={cx('relative overflow-hidden rounded-[10px] border p-5',
               waiting ? 'border-amber-200 bg-amber-50 dark:border-amber-500/20 dark:bg-amber-500/5'
                 : short ? 'border-rose-200 bg-rose-50 dark:border-rose-500/20 dark:bg-rose-500/5'
                   : 'border-emerald-200 bg-emerald-50 dark:border-emerald-500/20 dark:bg-emerald-500/5')}>
-              <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                <div className="flex items-start gap-3">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div className="flex min-w-0 items-start gap-3">
                   <span className={cx('grid h-11 w-11 shrink-0 place-items-center rounded-lg text-white', waiting ? 'bg-amber-500' : short ? 'bg-rose-500' : 'bg-emerald-500')}>
                     {waiting ? <Hourglass size={20} /> : short ? <AlertTriangle size={20} /> : <CheckCircle2 size={20} />}
                   </span>
@@ -94,7 +94,7 @@ export default function RmStockAvailability({ params }) {
                     </div>
                   </div>
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
                   <RowActions onView={() => setViewing(order.id)} onEdit={() => navigate('production/orders', { edit: order.id })} onDelete={() => setDeleting(order)}
                     editBlock={orderEditBlock(order)} deleteBlock={orderEditBlock(order)} />
                   {waiting ? (
@@ -116,33 +116,33 @@ export default function RmStockAvailability({ params }) {
                   {ledgerOk ? `Ledger verified · ${checks.length}/${checks.length}` : `${checks.filter((c) => !c.ok).length} ledger mismatch`}
                 </span>} />
               <div className="overflow-x-auto scrollbar-thin">
-                <table className="w-full min-w-[60rem] text-left text-sm">
+                <table className="w-full table-fixed text-left text-[0.8125rem]">
                   <thead>
                     <tr className="bg-prod-50/70 text-[0.75rem] font-semibold text-slate-700 dark:bg-white/[0.03] dark:text-slate-300">
-                      <th className="px-4 py-2.5">Material</th>
-                      <th className="px-4 py-2.5 text-right">Required</th>
-                      <th className="px-4 py-2.5 text-right">Ledger stock</th>
-                      <th className="px-4 py-2.5 text-right">Reserved</th>
-                      <th className="px-4 py-2.5 text-right">Available</th>
-                      <th className="px-4 py-2.5 text-right">Shortage</th>
-                      <th className="px-4 py-2.5">Ledger check</th>
-                      <th className="w-40 px-4 py-2.5">Coverage</th>
+                      <th className="w-[19%] px-3 py-2.5">Material</th>
+                      <th className="w-[11%] px-3 py-2.5 text-right">Required</th>
+                      <th className="w-[12%] px-3 py-2.5 text-right">Ledger stock</th>
+                      <th className="w-[9%] px-3 py-2.5 text-right">Reserved</th>
+                      <th className="w-[10%] px-3 py-2.5 text-right">Available</th>
+                      <th className="w-[9%] px-3 py-2.5 text-right">Shortage</th>
+                      <th className="w-[19%] px-3 py-2.5">Ledger check</th>
+                      <th className="w-[11%] px-3 py-2.5">Coverage</th>
                     </tr>
                   </thead>
                   <tbody>
                     {checks.map((l) => (
                       <tr key={l.code} className="border-t border-line dark:border-white/[0.05]">
-                        <td className="px-4 py-3">
+                        <td className="px-3 py-3">
                           <div className="flex items-center gap-1.5"><Mono className="text-slate-400">{l.code}</Mono>
                             <span className={cx('rounded px-1 text-[0.625rem] font-bold', l.group === 'PM' ? 'bg-orange-50 text-orange-600' : 'bg-prod-50 text-prod-500')}>{l.group}</span></div>
                           <div className="font-medium">{l.name}</div>
                         </td>
-                        <td className="whitespace-nowrap px-4 py-3 text-right tabular font-semibold">{fmtNum(l.required)} <span className="text-xs font-normal text-slate-400">{l.unit}</span></td>
-                        <td className="whitespace-nowrap px-4 py-3 text-right tabular">{fmtNum(l.ledger)} <span className="text-xs text-slate-400">{l.unit}</span></td>
-                        <td className="whitespace-nowrap px-4 py-3 text-right tabular text-indigo-600">{l.reserved ? fmtNum(l.reserved) : <span className="text-slate-300">0</span>}</td>
-                        <td className="whitespace-nowrap px-4 py-3 text-right tabular font-semibold">{fmtNum(l.available)}</td>
-                        <td className={cx('whitespace-nowrap px-4 py-3 text-right tabular font-semibold', l.shortage > 0 ? 'text-rose-600' : 'text-slate-400')}>{fmtNum(l.shortage)}</td>
-                        <td className="px-4 py-3">
+                        <td className="whitespace-nowrap px-3 py-3 text-right tabular font-semibold">{fmtNum(l.required)} <span className="text-xs font-normal text-slate-400">{l.unit}</span></td>
+                        <td className="whitespace-nowrap px-3 py-3 text-right tabular">{fmtNum(l.ledger)} <span className="text-xs text-slate-400">{l.unit}</span></td>
+                        <td className="whitespace-nowrap px-3 py-3 text-right tabular text-indigo-600">{l.reserved ? fmtNum(l.reserved) : <span className="text-slate-300">0</span>}</td>
+                        <td className="whitespace-nowrap px-3 py-3 text-right tabular font-semibold">{fmtNum(l.available)}</td>
+                        <td className={cx('whitespace-nowrap px-3 py-3 text-right tabular font-semibold', l.shortage > 0 ? 'text-rose-600' : 'text-slate-400')}>{fmtNum(l.shortage)}</td>
+                        <td className="px-3 py-3">
                           {l.entries === 0 && l.onHand === 0 ? (
                             <span className="inline-flex items-center gap-1 text-xs font-semibold text-orange-600"><AlertTriangle size={13} />No stock entries</span>
                           ) : l.ok ? (
@@ -156,7 +156,7 @@ export default function RmStockAvailability({ params }) {
                             {l.entries} entr{l.entries === 1 ? 'y' : 'ies'} · view ledger
                           </button>
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-3 py-3">
                           <Meter value={l.available} max={l.required} />
                           <div className={cx('mt-1 text-[0.6875rem] font-semibold', l.shortage > 0 ? 'text-rose-600' : 'text-emerald-600')}>
                             {l.shortage > 0 ? `${Math.round((l.available / l.required) * 100)}% covered` : 'Fully covered'}
