@@ -12,6 +12,8 @@ function useCounts() {
     'production/pull-out': byStatus('Material Issued'),
     'production/sop-submission': byStatus('Production Verified'),
     'inventory/purchase': state.requests.filter((r) => r.type === 'PURCHASE' && r.status === 'Pending').length,
+    'inventory/rfq': (state.rfqs || []).filter((x) => x.status === 'Sent' || x.status === 'Quoted').length,
+    'inventory/purchase-orders': state.purchases.filter((p) => p.status === 'Ordered').length,
     'inventory/stock-in': state.purchases.filter((p) => p.status === 'Ordered').length,
     'inventory/requests': state.requests.filter((r) => r.status === 'Pending').length,
     'inventory/pull-out': state.requests.filter((r) => r.type === 'PULL_OUT' && r.status === 'Pending').length,

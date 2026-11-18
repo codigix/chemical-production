@@ -93,6 +93,76 @@ function postLedger(s, code, type, qty, ref, rate) {
   s.ledger.unshift(entry);
 }
 
+/* ---------- Supplier master ---------- */
+export const DEFAULT_SUPPLIERS = ['Gujarat Alkalies Ltd.', 'Deepak Chem Traders', 'Aarti Industrial Supply', 'Shree Ram Acids', 'National Peroxide Co.'];
+const SUPPLIER_DEMO = {
+  'Gujarat Alkalies Ltd.': { contact: 'Rakesh Patel', phone: '+91 98250 11223', email: 'sales@gujaratalkalies.example', city: 'Vadodara', gstin: '24AAACG1234F1Z5', categories: ['Alkali', 'Salt'], paymentTerms: '30 days credit', leadDays: 5, rating: 4 },
+  'Deepak Chem Traders': { contact: 'Sunil Deepak', phone: '+91 98220 44556', email: 'orders@deepakchem.example', city: 'Pune', gstin: '27AAFCD5678K1Z2', categories: ['Solvent', 'Additive'], paymentTerms: '15 days credit', leadDays: 4, rating: 4 },
+  'Aarti Industrial Supply': { contact: 'Meena Shah', phone: '+91 99300 77881', email: 'meena@aartisupply.example', city: 'Mumbai', gstin: '27AABCA9012M1Z8', categories: ['Mineral', 'General'], paymentTerms: 'Advance', leadDays: 3, rating: 3 },
+  'Shree Ram Acids': { contact: 'Vikram Singh', phone: '+91 97140 22334', email: 'vikram@shreeramacids.example', city: 'Ankleshwar', gstin: '24AAGCS3456P1Z1', categories: ['Acid'], paymentTerms: '30 days credit', leadDays: 6, rating: 5 },
+  'National Peroxide Co.': { contact: 'Anita Rao', phone: '+91 98670 55667', email: 'anita@nationalperoxide.example', city: 'Navi Mumbai', gstin: '27AAACN7890Q1Z4', categories: ['Oxidiser'], paymentTerms: '45 days credit', leadDays: 7, rating: 4 },
+};
+export function supplierFields(p) {
+  return {
+    name: String(p.name || '').trim(), contact: p.contact || '', phone: p.phone || '', email: p.email || '', gstin: String(p.gstin || '').toUpperCase(),
+    city: p.city || '', address: p.address || '', categories: Array.isArray(p.categories) ? p.categories : [],
+    paymentTerms: p.paymentTerms || '', leadDays: Number(p.leadDays) || 0, rating: Math.min(5, Math.max(0, Number(p.rating) || 0)), notes: p.notes || '',
+  };
+}
+/* Where a supplier name is used (blocks delete) */
+export function supplierUsage(state, name) {
+  return {
+    pos: state.purchases.filter((p) => p.supplier === name),
+    rfqs: (state.rfqs || []).filter((r) => r.suppliers.includes(name)),
+    materials: state.materials.filter((m) => m.supplier === name),
+  };
+}
+
+/* Add a material to the master and return its new code (RM-xxx / PM-xxx) */
+function addMaterial(s, fields) {
+  const prefix = fields.type === 'Packing Material' ? 'PM' : 'RM';
+  const nums = s.materials.filter((m) => m.code.startsWith(`${prefix}-`)).map((m) => parseInt(m.code.split('-').pop(), 10)).filter(Number.isFinite);
+  const code = `${prefix}-${String(Math.max(0, ...nums) + 1).padStart(3, '0')}`;
+  s.materials.push({ code, ...materialFields(fields), onHand: 0, reserved: 0 });
+  log(s, 'inventory', `Raw material ${code} · ${fields.name} added`);
+  return code;
+}
+
+/*
+  Order form allows manual entries:
+  - a material name typed on a line that is not in the master → added to the Raw Material Master (stock 0)
+  - a product name typed that has no SOP → a new SOP (v1.0) is created from the order's lines
+*/
+function resolveManual(s, p) {
+  const lines = (p.lines || []).map((l) => ({ ...l }));
+  lines.forEach((l) => {
+    const name = (l.newName || '').trim();
+    if (l.code || !name || !(Number(l.qty) > 0)) return;
+    const found = s.materials.find((m) => m.name.trim().toLowerCase() === name.toLowerCase());
+    l.code = found ? found.code : addMaterial(s, {
+      name, unit: l.unit || (l.group === 'PM' ? 'nos' : 'kg'),
+      type: l.group === 'PM' ? 'Packing Material' : 'Raw Material', category: 'General', hazard: 'Non-hazardous',
+    });
+  });
+  let sopId = s.sops.some((x) => x.id === p.sopId) ? p.sopId : '';
+  /* No valid SOP: always end up with one — typed name, or a placeholder name */
+  if (!sopId) sopId = sopForProduct(s, (p.productName || '').trim() || 'Untitled product', lines, p.batches);
+  return { sopId, lines };
+}
+
+/* Find the SOP for a product name, or create a v1.0 SOP from order lines */
+function sopForProduct(s, product, lines, batches) {
+  const found = s.sops.find((x) => String(x.product || '').trim().toLowerCase() === product.toLowerCase());
+  if (found) return found.id;
+  const b = Number(batches) || 1;
+  const per = (g) => (lines || []).filter((l) => l.code && Number(l.qty) > 0 && (l.group === 'PM') === (g === 'PM'))
+    .map((l) => ({ code: l.code, qty: Math.round((Number(l.qty) / b) * 1000) / 1000 }));
+  const id = nextId(s.sops, 'SOP', 400);
+  s.sops.push({ id, product, version: 'v1.0', batchSize: 1000, unit: 'kg', duration: '', materials: per('RM'), steps: [], packing: per('PM'), createdFromOrder: true });
+  log(s, 'production', `SOP ${id} · ${product} created from a production order`);
+  return id;
+}
+
 function reducer(state, action) {
   if (action.type === 'REPLACE') return normalize(clone(action.data));
   const s = clone(state);
@@ -103,9 +173,10 @@ function reducer(state, action) {
     /* ---------------- Production ---------------- */
     case 'CREATE_ORDER': {
       const id = nextId(s.orders, 'PRD', 1001);
+      const r = resolveManual(s, p);
       s.orders.unshift({
-        id, sopId: p.sopId, batches: Number(p.batches), plannedDate: p.plannedDate, priority: p.priority, status: 'Draft', createdAt: now(),
-        lines: cleanLines(p.lines), history: [{ status: 'Draft', t: now(), by: 'Production' }],
+        id, sopId: r.sopId, batches: Number(p.batches), plannedDate: p.plannedDate, priority: p.priority, status: 'Draft', createdAt: now(),
+        lines: cleanLines(r.lines), history: [{ status: 'Draft', t: now(), by: 'Production' }],
       });
       log(s, 'production', `Production order ${id} created`);
       return s;
@@ -163,9 +234,39 @@ function reducer(state, action) {
     }
 
     /* ---------------- Inventory ---------------- */
+    /* ---- RFQ: requirement → request quotes from suppliers → compare → PO ---- */
+    case 'CREATE_RFQ': {
+      s.rfqs = s.rfqs || [];
+      const id = nextId(s.rfqs, 'RFQ');
+      s.rfqs.unshift({ id, reqId: p.reqId || null, items: p.items, suppliers: p.suppliers, dueDate: p.dueDate, notes: p.notes || '', quotes: {}, status: 'Sent', date: now() });
+      if (p.reqId) { const req = s.requests.find((r) => r.id === p.reqId); if (req) req.rfqId = id; }
+      log(s, 'inventory', `${id} sent to ${p.suppliers.length} supplier(s)`);
+      return s;
+    }
+    case 'SAVE_QUOTES': {
+      const rfq = (s.rfqs || []).find((x) => x.id === p.rfqId);
+      if (!rfq) return s;
+      rfq.quotes = p.quotes;
+      if (rfq.status !== 'PO Raised') rfq.status = Object.keys(p.quotes).length ? 'Quoted' : 'Sent';
+      log(s, 'inventory', `Quotes updated on ${rfq.id}`);
+      return s;
+    }
+    case 'DELETE_RFQ': {
+      const rfq = (s.rfqs || []).find((x) => x.id === p.rfqId);
+      if (!rfq || rfq.status === 'PO Raised') return s;
+      s.rfqs = s.rfqs.filter((x) => x.id !== p.rfqId);
+      const req = s.requests.find((r) => r.rfqId === p.rfqId);
+      if (req) delete req.rfqId;
+      log(s, 'inventory', `${p.rfqId} cancelled`);
+      return s;
+    }
     case 'RAISE_PO': {
       const id = nextId(s.purchases, 'PUR');
-      s.purchases.unshift({ id, supplier: p.supplier, expected: p.expected, items: p.items, reqId: p.reqId || null, status: 'Ordered', date: now() });
+      s.purchases.unshift({ id, supplier: p.supplier, expected: p.expected, items: p.items, reqId: p.reqId || null, rfqId: p.rfqId || null, status: 'Ordered', date: now() });
+      if (p.rfqId) {
+        const rfq = (s.rfqs || []).find((x) => x.id === p.rfqId);
+        if (rfq) { rfq.status = 'PO Raised'; rfq.poId = id; rfq.selected = p.supplier; }
+      }
       if (p.reqId) {
         const req = s.requests.find((r) => r.id === p.reqId);
         if (req) { req.status = 'PO Raised'; req.purchaseId = id; }
@@ -232,9 +333,9 @@ function reducer(state, action) {
     }
     case 'OFFICE_ACCEPT': {
       const req = s.requests.find((r) => r.id === order.pullOutReqId);
-      /* Stock already posted OUT at issue (new flow) → nothing more to deduct here.
-         Older issues that only reserved stock are posted OUT now, as before. */
-      if (!req?.stockOut) (req?.items || []).forEach((it) => {
+      /* Office acceptance = signature + SOP confirmation only. Stock OUT was posted at issue
+         (old reserved issues are converted in normalize), so nothing is deducted here. */
+      if (req && !req.stockOut) (req.items || []).forEach((it) => {
         const mat = s.materials.find((m) => m.code === it.code);
         /* the only point where stock leaves: on hand − issued qty = balance (rounded to 3 decimals, e.g. 1650 − 340.5) */
         mat.reserved = Math.max(0, Math.round((mat.reserved - it.qty) * 1000) / 1000);
@@ -249,10 +350,13 @@ function reducer(state, action) {
     }
     /* ---------------- Edit / Delete ---------------- */
     case 'UPDATE_ORDER': {
-      const lines = cleanLines(p.patch.lines);
-      const changedRecipe = p.patch.sopId !== order.sopId || Number(p.patch.batches) !== order.batches
+      const r = resolveManual(s, p.patch);
+      const { productName, ...rest } = p.patch; // eslint-disable-line no-unused-vars
+      const patch = { ...rest, sopId: r.sopId };
+      const lines = cleanLines(r.lines);
+      const changedRecipe = patch.sopId !== order.sopId || Number(patch.batches) !== order.batches
         || JSON.stringify(lines) !== JSON.stringify(order.lines || []);
-      Object.assign(order, { ...p.patch, batches: Number(p.patch.batches), lines });
+      Object.assign(order, { ...patch, batches: Number(patch.batches), lines });
       if (changedRecipe && ['Shortage', 'Ready'].includes(order.status)) stamp(order, 'Draft', 'Production');
       log(s, 'production', `Production order ${order.id} edited`);
       return s;
@@ -300,6 +404,9 @@ function reducer(state, action) {
         const req = s.requests.find((r) => r.id === po.reqId);
         if (req) { req.status = 'Pending'; delete req.purchaseId; }
       }
+      /* RFQ behind this PO goes back to Quoted so another supplier can be chosen */
+      const rfq = (s.rfqs || []).find((x) => x.poId === p.purchaseId);
+      if (rfq) { rfq.status = 'Quoted'; delete rfq.poId; delete rfq.selected; }
       s.purchases = s.purchases.filter((x) => x.id !== p.purchaseId);
       log(s, 'inventory', `Purchase order ${p.purchaseId} deleted`);
       return s;
@@ -345,13 +452,50 @@ function reducer(state, action) {
       log(s, 'inventory', `Stock check for ${order.id} reversed`);
       return s;
     }
+    /* ---------- Supplier master ---------- */
+    case 'CREATE_SUPPLIER': {
+      s.suppliers = s.suppliers || [];
+      const id = nextId(s.suppliers, 'SUP');
+      s.suppliers.push({ id, ...supplierFields(p), active: true });
+      log(s, 'inventory', `Supplier ${id} · ${p.name} added`);
+      return s;
+    }
+    case 'UPDATE_SUPPLIER': {
+      const sup = (s.suppliers || []).find((x) => x.id === p.id);
+      if (!sup) return s;
+      const old = sup.name;
+      Object.assign(sup, supplierFields(p));
+      /* Renamed → update the name everywhere it is used */
+      if (old !== sup.name) {
+        s.materials.forEach((m) => { if (m.supplier === old) m.supplier = sup.name; });
+        s.purchases.forEach((po) => { if (po.supplier === old) po.supplier = sup.name; });
+        (s.rfqs || []).forEach((r) => {
+          r.suppliers = r.suppliers.map((x) => (x === old ? sup.name : x));
+          if (r.quotes?.[old]) { r.quotes[sup.name] = r.quotes[old]; delete r.quotes[old]; }
+          if (r.selected === old) r.selected = sup.name;
+        });
+      }
+      log(s, 'inventory', `Supplier ${sup.id} edited`);
+      return s;
+    }
+    case 'SET_SUPPLIER_ACTIVE': {
+      const sup = (s.suppliers || []).find((x) => x.id === p.id);
+      if (sup) { sup.active = !!p.active; log(s, 'inventory', `Supplier ${sup.id} ${p.active ? 'activated' : 'deactivated'}`); }
+      return s;
+    }
+    case 'DELETE_SUPPLIER': {
+      const sup = (s.suppliers || []).find((x) => x.id === p.id);
+      if (!sup) return s;
+      const u = supplierUsage(s, sup.name);
+      if (u.pos.length || u.rfqs.length) return s; // used in purchasing → deactivate instead
+      s.materials.forEach((m) => { if (m.supplier === sup.name) m.supplier = ''; });
+      s.suppliers = s.suppliers.filter((x) => x.id !== p.id);
+      log(s, 'inventory', `Supplier ${sup.id} · ${sup.name} deleted`);
+      return s;
+    }
     case 'CREATE_MATERIAL': {
       /* RM-xxx for raw materials, PM-xxx for packing materials */
-      const prefix = p.type === 'Packing Material' ? 'PM' : 'RM';
-      const nums = s.materials.filter((m) => m.code.startsWith(`${prefix}-`)).map((m) => parseInt(m.code.split('-').pop(), 10)).filter(Number.isFinite);
-      const code = `${prefix}-${String(Math.max(0, ...nums) + 1).padStart(3, '0')}`;
-      s.materials.push({ code, ...materialFields(p), onHand: 0, reserved: 0 });
-      log(s, 'inventory', `Raw material ${code} · ${p.name} added`);
+      addMaterial(s, p);
       return s;
     }
     case 'UPDATE_MATERIAL': {
@@ -406,9 +550,24 @@ function normalize(data) {
       seed.ledger.filter((x) => x.code === e.code).forEach((x) => data.ledger.push({ ...x, id: nextId(data.ledger, 'LG') }));
     }
   });
+  data.rfqs = data.rfqs || [];
+  /* Supplier master: first load builds it from known suppliers; later, any name used in materials/POs is added */
+  const firstTime = !Array.isArray(data.suppliers);
+  if (firstTime) data.suppliers = [];
+  [...(firstTime ? DEFAULT_SUPPLIERS : []), ...data.materials.map((m) => m.supplier), ...(data.purchases || []).map((p) => p.supplier)]
+    .filter(Boolean).forEach((name) => {
+      if (data.suppliers.some((x) => x.name === name)) return;
+      data.suppliers.push({ id: nextId(data.suppliers, 'SUP'), ...supplierFields({ name, ...(SUPPLIER_DEMO[name] || {}) }), active: true });
+    });
   data.sops = data.sops || [];
   seed.sops.forEach((sp) => { if (!data.sops.some((x) => x.id === sp.id)) data.sops.push(sp); });
   if (!data.company) data.company = seed.company;
+  /* Repair: orders saved without a valid SOP get one (named after productName, or "Product for PRD-xxxx") */
+  data.activity = data.activity || [];
+  (data.orders || []).forEach((o) => {
+    if (data.sops.some((x) => x.id === o.sopId)) return;
+    o.sopId = sopForProduct(data, (o.productName || '').trim() || `Product for ${o.id}`, o.lines, o.batches);
+  });
   /* One-off repair: POs raised before the fix were rounded up to the nearest 50.
      Only open (Ordered) POs linked to a requirement, and only lines that hold exactly that rounded figure. */
   (data.purchases || []).forEach((po) => {
@@ -419,6 +578,19 @@ function normalize(data) {
       const need = req.items.find((x) => x.code === it.code)?.qty;
       return need != null && need !== it.qty && it.qty === Math.ceil(need / 50) * 50 ? { ...it, qty: need } : it;
     });
+  });
+  /* Stock OUT now happens on issue. Pull outs issued under the old flow (stock only reserved)
+     are posted OUT once here, so office acceptance never deducts stock. */
+  (data.requests || []).forEach((r) => {
+    if (r.type !== 'PULL_OUT' || r.stockOut || !['Issued', 'Received by Production'].includes(r.status)) return;
+    r.items.forEach((it) => {
+      const mat = data.materials.find((m) => m.code === it.code);
+      if (!mat) return;
+      mat.reserved = Math.max(0, Math.round((mat.reserved - it.qty) * 1000) / 1000);
+      mat.onHand = Math.round((mat.onHand - it.qty) * 1000) / 1000;
+      postLedger(data, it.code, 'OUT', it.qty, `${r.orderId} · ${r.id} · issued to production`);
+    });
+    r.stockOut = true;
   });
   return data;
 }

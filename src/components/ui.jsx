@@ -119,7 +119,7 @@ const STATUS_TONE = {
   Draft: 'slate', Shortage: 'rose', 'Awaiting Purchase': 'amber', Ready: 'emerald',
   'Pull Out Requested': 'sky', 'Material Issued': 'indigo', 'Production Verified': 'teal',
   'SOP Submitted': 'violet', 'Stock Verified': 'fuchsia', Accepted: 'emerald',
-  Pending: 'amber', 'PO Raised': 'sky', Received: 'emerald', Issued: 'indigo',
+  Pending: 'amber', 'PO Raised': 'sky', Sent: 'amber', Quoted: 'indigo', Received: 'emerald', Issued: 'indigo',
   'Received by Production': 'teal', Closed: 'slate', Ordered: 'sky',
   High: 'rose', Medium: 'amber', Low: 'slate', IN: 'emerald', OUT: 'rose',
   PURCHASE: 'amber', PULL_OUT: 'sky',

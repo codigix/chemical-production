@@ -98,7 +98,7 @@ export default function Dashboard() {
                 <span className="text-[0.6875rem] font-bold uppercase tracking-wider text-orange-600">Shortage</span>
                 <Node icon={AlertTriangle} label="Purchase Requirement" tone="warn" to="production/rm-stock" count={count('Shortage')} />
                 <Arrow />
-                <Node icon={ShoppingCart} label="PO / GRN" to="inventory/purchase" count={count('Awaiting Purchase')} />
+                <Node icon={ShoppingCart} label="PO / GRN" to="inventory/purchase-orders" count={count('Awaiting Purchase')} />
               </div>
               <div className="flex flex-wrap items-center gap-2 rounded-lg border border-dashed border-emerald-300 bg-emerald-50/40 p-2.5 dark:border-emerald-500/30 dark:bg-emerald-500/5">
                 <span className="text-[0.6875rem] font-bold uppercase tracking-wider text-emerald-600">Available</span>

@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, ClipboardList, BookOpenCheck, Gauge, PackageOpen, FileCheck2, History,
-  Boxes, ShoppingCart, PackagePlus, Inbox, PackageMinus, ScanSearch, Stamp, BookText, ArrowLeftRight,
+  Boxes, ShoppingCart, PackagePlus, Inbox, PackageMinus, ScanSearch, Stamp, BookText, ArrowLeftRight, Send, FileText, Building2,
 } from 'lucide-react';
 
 /* Menu bar: only the two existing modules, Production and Inventory. */
@@ -22,7 +22,10 @@ export const NAV = [
     label: 'Inventory',
     items: [
       { path: 'inventory/materials', color: 'teal', label: 'Raw Material Master', icon: Boxes, desc: 'Master list of raw materials' },
-      { path: 'inventory/purchase', label: 'Raw Material Purchase', icon: ShoppingCart, desc: 'Purchase requirements and purchase orders' },
+      { path: 'inventory/suppliers', label: 'Supplier Master', icon: Building2, desc: 'Suppliers for RFQ and purchase orders' },
+      { path: 'inventory/purchase', label: 'Raw Material Purchase', icon: ShoppingCart, desc: 'Purchase requirements from Production' },
+      { path: 'inventory/rfq', label: 'RFQ & Quotation', icon: Send, desc: 'Request quotes from suppliers and compare' },
+      { path: 'inventory/purchase-orders', label: 'Purchase Orders', icon: FileText, desc: 'Purchase orders and GRN status' },
       { path: 'inventory/stock-in', label: 'RM Stock In', icon: PackagePlus, desc: 'Receive GRN and add stock' },
       { path: 'inventory/requests', label: 'Production Material Requests', icon: Inbox, desc: 'Requests coming from Production' },
       { path: 'inventory/pull-out', label: 'Raw Material Pull Out', icon: PackageMinus, desc: 'Issue material to production' },

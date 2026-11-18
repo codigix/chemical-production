@@ -42,37 +42,6 @@ export default function PullOutRequest() {
       <PageHeader module="production" icon={PackageOpen} title="Material Pull Out Request" subtitle="Track pull out requests and verify the material Inventory has issued to the shop floor."
         actions={<Button variant="ghost" icon={PackageOpen} onClick={() => navigate('production/rm-stock')}>New request from RM check</Button>} />
 
-      {/* Stock in production: material issued from the store and held on the shop floor (until office acceptance posts the ledger OUT) */}
-      {(() => {
-        const held = pulls.filter((r) => ['Issued', 'Received by Production'].includes(r.status));
-        const byMat = {};
-        held.forEach((r) => r.items.forEach((it) => {
-          const row = byMat[it.code] || (byMat[it.code] = { code: it.code, qty: 0, orders: [], pending: 0 });
-          row.qty = Math.round((row.qty + it.qty) * 1000) / 1000;
-          row.orders.push(r.orderId);
-          if (r.status === 'Issued') row.pending = Math.round((row.pending + it.qty) * 1000) / 1000;
-        }));
-        const rows = Object.values(byMat);
-        return (
-          <Card className="mb-6">
-            <CardHeader title="Stock in production" subtitle="Material moved Store → Production on issue · stock OUT posted in Stock Movement at issue" icon={Factory} tone="production" />
-            <Table
-              rows={rows}
-              rowKey={(x) => x.code}
-              empty={{ icon: Factory, title: 'No material in production', text: 'Material appears here once Inventory issues a pull out request.' }}
-              columns={[
-                { key: 'm', label: 'Material', render: (x) => <div><div className="font-medium">{mat(x.code)?.name}</div><div className="text-[0.6875rem] text-slate-400">{x.code}</div></div> },
-                { key: 'o', label: 'Orders', render: (x) => <div className="flex flex-wrap gap-1">{[...new Set(x.orders)].map((o) => <Mono key={o} className="text-prod-600">{o}</Mono>)}</div> },
-                { key: 'in', label: 'Received from store', align: 'right', render: (x) => <span className="tabular font-semibold text-emerald-600">+{fmtNum(x.qty)} <span className="text-xs font-normal text-slate-400">{mat(x.code)?.unit}</span></span> },
-                { key: 's', label: 'Status', render: (x) => x.pending > 0
-                  ? <span className="text-xs font-semibold text-amber-600">{fmtNum(x.pending)} {mat(x.code)?.unit} to verify</span>
-                  : <span className="text-xs font-semibold text-emerald-600">✓ Verified on floor</span> },
-              ]}
-            />
-          </Card>
-        );
-      })()}
-
       <div className="mb-5 inline-flex flex-wrap rounded-lg border border-line bg-white p-1 dark:border-white/[0.07] dark:bg-ink-900">
         {TABS.map((t) => {
           const n = pulls.filter((r) => (t.key === 'done' ? ['Received by Production', 'Closed'].includes(r.status) : r.status === t.key)).length;
@@ -111,6 +80,37 @@ export default function PullOutRequest() {
           ))}
         </div>
       )}
+
+      {/* Stock in production: material issued from the store and held on the shop floor (until office acceptance posts the ledger OUT) */}
+      {(() => {
+        const held = pulls.filter((r) => ['Issued', 'Received by Production'].includes(r.status));
+        const byMat = {};
+        held.forEach((r) => r.items.forEach((it) => {
+          const row = byMat[it.code] || (byMat[it.code] = { code: it.code, qty: 0, orders: [], pending: 0 });
+          row.qty = Math.round((row.qty + it.qty) * 1000) / 1000;
+          row.orders.push(r.orderId);
+          if (r.status === 'Issued') row.pending = Math.round((row.pending + it.qty) * 1000) / 1000;
+        }));
+        const rows = Object.values(byMat);
+        return (
+          <Card className="mt-6">
+            <CardHeader title="Stock in production" subtitle="Material moved Store → Production on issue · stock OUT posted in Stock Movement at issue" icon={Factory} tone="production" />
+            <Table
+              rows={rows}
+              rowKey={(x) => x.code}
+              empty={{ icon: Factory, title: 'No material in production', text: 'Material appears here once Inventory issues a pull out request.' }}
+              columns={[
+                { key: 'm', label: 'Material', render: (x) => <div><div className="font-medium">{mat(x.code)?.name}</div><div className="text-[0.6875rem] text-slate-400">{x.code}</div></div> },
+                { key: 'o', label: 'Orders', render: (x) => <div className="flex flex-wrap gap-1">{[...new Set(x.orders)].map((o) => <Mono key={o} className="text-prod-600">{o}</Mono>)}</div> },
+                { key: 'in', label: 'Received from store', align: 'right', render: (x) => <span className="tabular font-semibold text-emerald-600">+{fmtNum(x.qty)} <span className="text-xs font-normal text-slate-400">{mat(x.code)?.unit}</span></span> },
+                { key: 's', label: 'Status', render: (x) => x.pending > 0
+                  ? <span className="text-xs font-semibold text-amber-600">{fmtNum(x.pending)} {mat(x.code)?.unit} to verify</span>
+                  : <span className="text-xs font-semibold text-emerald-600">✓ Verified on floor</span> },
+              ]}
+            />
+          </Card>
+        );
+      })()}
 
       <Modal open={!!verify} onClose={() => setVerify(null)} title="Verify issued material" subtitle={verify && `${verify.id} for ${verify.orderId}. Tick each line once it is physically checked.`}
         footer={<><Button variant="ghost" onClick={() => setVerify(null)}>Cancel</Button><Button variant="production" icon={CheckCircle2} disabled={!allChecked} onClick={confirm}>Confirm verification</Button></>}>

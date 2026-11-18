@@ -76,9 +76,22 @@ export default function StockVerification() {
         />
       </Card>
 
-      <Modal open={!!cur} onClose={() => setCur(null)} title={cur && `Stock check · ${cur.id}`} subtitle="Every point must be confirmed."
+      <Modal open={!!cur} onClose={() => setCur(null)} title={cur && `Stock check · ${cur.id}`} subtitle={cur ? `${sopOf(cur)?.product || ''} · every point must be confirmed.` : ''}
         footer={<><Button variant="ghost" onClick={() => setCur(null)}>Cancel</Button><Button variant="inventory" icon={ShieldCheck} disabled={!all || !form.by} onClick={confirm}>Mark verified</Button></>}>
         <div className="space-y-2">
+          {/* Product being checked (from the order's SOP) */}
+          {cur && (
+            <div className="mb-2 grid gap-3 rounded-lg bg-prod-50/70 p-3 text-sm sm:grid-cols-3 dark:bg-white/[0.04]">
+              <div className="sm:col-span-3">
+                <div className="text-[0.6562rem] font-semibold uppercase tracking-wider text-slate-400">Product</div>
+                <div className="text-base font-bold">{sopOf(cur)?.product || '—'}</div>
+                <div className="text-xs text-slate-500">{cur.sopId} · {sopOf(cur)?.version}{cur.submission?.batchNo ? ` · Batch ${cur.submission.batchNo}` : ''}</div>
+              </div>
+              <div><div className="text-[0.6562rem] uppercase tracking-wider text-slate-400">Planned</div><b className="tabular">{fmtNum(cur.batches * (sopOf(cur)?.batchSize || 0))} {sopOf(cur)?.unit}</b></div>
+              <div><div className="text-[0.6562rem] uppercase tracking-wider text-slate-400">Actual yield</div><b className="tabular">{fmtNum(cur.submission?.actualYield)} {sopOf(cur)?.unit}</b></div>
+              <div><div className="text-[0.6562rem] uppercase tracking-wider text-slate-400">Pull out</div><b>{reqOf(cur)?.id || '—'}</b></div>
+            </div>
+          )}
           <div className="flex justify-end">
             <SelectAll total={CHECKS.length} done={CHECKS.filter((_, i) => form.checks[i]).length}
               onChange={(v) => setForm({ ...form, checks: Object.fromEntries(CHECKS.map((_, i) => [i, v])) })} />

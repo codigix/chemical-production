@@ -15,7 +15,10 @@ import {
   Drop <XRowActions record={...} /> into any table cell or card; the pop-ups live inside.
 */
 
-const SUPPLIERS = ['Gujarat Alkalies Ltd.', 'Deepak Chem Traders', 'Aarti Industrial Supply', 'Shree Ram Acids', 'National Peroxide Co.'];
+function SupplierDatalist() {
+  const { state } = useStore();
+  return <datalist id="supplier-master-list">{(state.suppliers || []).filter((x) => x.active !== false).map((x) => <option key={x.id} value={x.name} />)}</datalist>;
+}
 
 function ItemLines({ items, onChange, withRate = false, requiredOf }) {
   const { state } = useStore();
@@ -141,7 +144,7 @@ export function PurchaseRowActions({ po }) {
         {f && (
           <>
             <div className="grid gap-3 sm:grid-cols-2">
-              <Field label="Supplier"><select className={inputCls} value={f.supplier} onChange={(e) => setF({ ...f, supplier: e.target.value })}>{[...new Set([f.supplier, ...SUPPLIERS])].map((s) => <option key={s}>{s}</option>)}</select></Field>
+              <Field label="Supplier"><select className={inputCls} value={f.supplier} onChange={(e) => setF({ ...f, supplier: e.target.value })}>{[...new Set([f.supplier, ...(state.suppliers || []).filter((x) => x.active !== false).map((x) => x.name)])].filter(Boolean).map((s) => <option key={s}>{s}</option>)}</select></Field>
               <Field label="Expected delivery"><input type="date" className={inputCls} value={f.expected} onChange={(e) => setF({ ...f, expected: e.target.value })} /></Field>
             </div>
             <div className="mb-2 mt-4 grid grid-cols-[1fr_7rem_7rem] gap-2 text-[0.6875rem] font-semibold uppercase tracking-wider text-slate-500"><span>Material</span><span>Qty</span><span>Rate ₹</span></div>
@@ -303,7 +306,11 @@ export function MaterialForm({ value, onChange }) {
           {HAZARD_CLASSES.map((c) => <option key={c} value={c}>{c}</option>)}
         </select>
       </Field>
-      <Field label="Preferred supplier"><input className={inputCls} value={value.supplier || ''} onChange={set('supplier')} /></Field>
+      <Field label="Preferred supplier">
+        {/* pick from the Supplier Master (typing a name is still allowed) */}
+        <input className={inputCls} list="supplier-master-list" value={value.supplier || ''} onChange={set('supplier')} placeholder="Pick from Supplier Master" />
+        <SupplierDatalist />
+      </Field>
       <Field label="Standard rate (₹ / unit)"><input type="number" min="0" className={inputCls} value={value.rate ?? ''} onChange={set('rate')} /></Field>
 
       <Section>Storage</Section>

@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { ClipboardList, Plus, Search, Gauge, PackageCheck, FileCheck2, Save, Trash2, RotateCcw, ChevronDown, Check } from 'lucide-react';
 import { RowActions, ConfirmDialog } from '../../components/actions';
 import { orderEditBlock, materialTypeOf } from '../../store/rules';
-import { useStore, requirementFor, sopLines } from '../../store/StoreContext';
+import { createPortal } from 'react-dom';
+import { useStore, requirementFor, sopLines, available } from '../../store/StoreContext';
 import { Card, PageHeader, Button, Badge, Table, Modal, Field, Mono, inputCls, fmtDate, fmtNum, cx, useToast } from '../../components/ui';
 import OrderFlow from '../../components/OrderFlow';
 import OrderDetail from '../../components/OrderDetail';
@@ -14,7 +15,7 @@ import { navigate } from '../../router';
   - The list opens only from the ▾ button.
   - Typed text is matched to an SOP when you press Enter or leave the field.
 */
-function SopCombo({ sops, value, onChange }) {
+function SopCombo({ sops, value, onChange, onText }) {
   const sel = sops.find((s) => s.id === value);
   const label = (s) => `${s.id} · ${s.product} (${s.version})`;
   const [open, setOpen] = useState(false);
@@ -42,18 +43,19 @@ function SopCombo({ sops, value, onChange }) {
 
   /* Resolve the typed text to an SOP */
   const commit = () => {
-    if (match) { if (match.id !== value) onChange(match.id); setText(label(match)); }
-    else if (text.trim() && value) onChange('');
+    if (match) { if (match.id !== value) onChange(match.id); onText?.(''); setText(label(match)); }
+    else if (text.trim()) { if (value) onChange(''); onText?.(text.trim()); }
+    else onText?.('');
   };
-  const pick = (s) => { onChange(s.id); setText(label(s)); setOpen(false); };
+  const pick = (s) => { onChange(s.id); onText?.(''); setText(label(s)); setOpen(false); };
 
   return (
     <div ref={ref}>
       <div className="relative">
-        <input className={cx(inputCls, 'pr-10', typedUnknown && 'border-amber-400')}
+        <input className={cx(inputCls, 'pr-10', typedUnknown && 'border-sky-400')}
           placeholder="Type product name / SOP no. or pick from ▾"
           value={text}
-          onChange={(e) => setText(e.target.value)}
+          onChange={(e) => { setText(e.target.value); onText?.(e.target.value.trim()); }}
           onBlur={commit}
           onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); commit(); } }} />
         <button type="button" title="Show SOP list" onMouseDown={(e) => e.preventDefault()} onClick={() => setOpen((o) => !o)}
@@ -74,7 +76,114 @@ function SopCombo({ sops, value, onChange }) {
         )}
       </div>
       {typedUnknown && (
-        <div className="mt-1 text-[0.6875rem] text-amber-600">No SOP found for “{text.trim()}” — check the name or pick one from the ▾ list.</div>
+        <div className="mt-1 flex items-center gap-1.5 text-[0.6875rem] text-sky-700 dark:text-sky-300">
+          <span className="rounded bg-sky-100 px-1.5 py-0.5 text-[0.625rem] font-bold uppercase dark:bg-sky-500/20">New product</span>
+          “{text.trim()}” is not in SOP Management — a new SOP (v1.0) will be created from this order's materials. Add materials below.
+        </div>
+      )}
+    </div>
+  );
+}
+
+/*
+  Material field on an order line: type the name / code manually, matching
+  materials from the Raw Material Master are listed while typing (▾ shows all).
+  The list is portalled so the table's scroll box doesn't clip it.
+*/
+function MaterialCombo({ options, all, value, onChange, placeholder, newName, onNew }) {
+  const sel = all.find((m) => m.code === value);
+  const label = (m) => `${m.code} · ${m.name}`;
+  const shown = () => (sel ? label(sel) : newName || '');
+  const [text, setText] = useState(shown);
+  const [open, setOpen] = useState(false);
+  const [hi, setHi] = useState(0);
+  const [box, setBox] = useState(null);
+  const wrap = useRef(null);
+  const listRef = useRef(null);
+
+  useEffect(() => { setText(shown()); }, [value, newName]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const t = text.trim().toLowerCase();
+  const filtered = !t || (sel && text === label(sel)) ? options
+    : options.filter((m) => `${m.code} ${m.name} ${m.category || ''}`.toLowerCase().includes(t));
+
+  const place = () => { const r = wrap.current?.getBoundingClientRect(); if (r) setBox({ left: r.left, top: r.bottom + 4, width: Math.max(r.width, 300) }); };
+  useEffect(() => {
+    if (!open) return undefined;
+    place();
+    const onDoc = (e) => { if (!wrap.current?.contains(e.target) && !listRef.current?.contains(e.target)) closeRef.current(); };
+    window.addEventListener('scroll', place, true);
+    window.addEventListener('resize', place);
+    document.addEventListener('mousedown', onDoc);
+    return () => { window.removeEventListener('scroll', place, true); window.removeEventListener('resize', place); document.removeEventListener('mousedown', onDoc); };
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  /* Leaving the field: a name/code match selects it; any other typed name is kept as a NEW material */
+  const norm = (v) => String(v).toLowerCase().replace(/[·\s]+/g, ' ').trim();
+  const findExact = () => {
+    const n = norm(text);
+    if (!n) return null;
+    return options.find((m) => [m.code, m.name, label(m), `${m.code} ${m.name}`].some((v) => norm(v) === n))
+      /* typed "RM-006 …" → the code wins */
+      || options.find((m) => n.startsWith(`${norm(m.code)} `) || n === norm(m.code));
+  };
+  const close = () => {
+    setOpen(false);
+    const exact = findExact();
+    if (exact) { if (exact.code !== value) onChange(exact.code); setText(label(exact)); }
+    else if (sel && text === label(sel)) setText(label(sel));
+    else if (text.trim()) onNew(text.trim());
+    else setText(shown());
+  };
+  const isNew = !value && !!newName;
+  const closeRef = useRef(close);
+  closeRef.current = close;
+  const pick = (m) => { onChange(m.code); setText(label(m)); setOpen(false); };
+  const onKey = (e) => {
+    if (e.key === 'ArrowDown') { e.preventDefault(); if (!open) setOpen(true); setHi((h) => Math.min(h + 1, filtered.length - 1)); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); setHi((h) => Math.max(h - 1, 0)); }
+    else if (e.key === 'Enter') { e.preventDefault(); if (open && filtered[hi]) pick(filtered[hi]); else close(); }
+    else if (e.key === 'Escape' && open) { e.stopPropagation(); close(); }
+  };
+
+  return (
+    <div ref={wrap} className="relative">
+      <input className={cx(inputCls, 'h-9 pr-8', isNew ? 'border-sky-400 pr-14' : !value && 'border-amber-300')} placeholder={placeholder} value={text}
+        onChange={(e) => { setText(e.target.value); setHi(0); setOpen(true); }}
+        onFocus={(e) => e.target.select()}
+        onKeyDown={onKey} aria-label="Material" />
+      <button type="button" tabIndex={-1} onMouseDown={(e) => e.preventDefault()} onClick={() => { if (open) close(); else { setHi(0); setOpen(true); } }}
+        className="absolute right-1 top-1/2 grid h-7 w-7 -translate-y-1/2 place-items-center rounded text-slate-400 hover:text-prod-500">
+        <ChevronDown size={15} className={cx('transition', open && 'rotate-180')} />
+      </button>
+      {isNew && !open && <span className="pointer-events-none absolute right-8 top-1/2 -translate-y-1/2 rounded bg-sky-100 px-1 text-[0.5625rem] font-bold uppercase text-sky-700">New</span>}
+      {open && box && createPortal(
+        <div ref={listRef} style={{ position: 'fixed', left: box.left, top: box.top, width: box.width }}
+          className="z-[200] max-h-64 overflow-y-auto rounded-xl border border-slate-200 bg-white py-1 shadow-xl dark:border-white/10 dark:bg-ink-800">
+          {/* Manual entry: use the typed name as a new material */}
+          {t && !findExact() && !(sel && text === label(sel)) && (
+            <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => { setOpen(false); onNew(text.trim()); }}
+              className="flex w-full items-center gap-2 border-b border-slate-100 px-3 py-2 text-left text-sm text-sky-700 hover:bg-sky-50 dark:border-white/[0.06] dark:text-sky-300 dark:hover:bg-white/[0.04]">
+              <Plus size={14} />Use “<b>{text.trim()}</b>” as a new material <span className="ml-auto text-[0.6875rem] text-slate-400">added to master on save</span>
+            </button>
+          )}
+          {filtered.length === 0
+            ? <div className="px-3 py-3 text-center text-xs text-slate-400">No material in the master matches “{text}”</div>
+            : filtered.map((m, i) => (
+              <button key={m.code} type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => pick(m)} onMouseEnter={() => setHi(i)}
+                className={cx('flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm', i === hi && 'bg-prod-50 dark:bg-white/[0.06]')}>
+                <span className="min-w-0">
+                  <span className="block truncate font-medium">{m.name}</span>
+                  <span className="text-[0.6875rem] text-slate-400"><Mono>{m.code}</Mono> · {m.category || 'General'} · {m.unit}</span>
+                </span>
+                <span className="flex shrink-0 items-center gap-2 text-right">
+                  <span className="text-[0.6875rem] text-slate-500">{fmtNum(available(m))} {m.unit} avail.</span>
+                  {m.code === value && <Check size={14} className="text-prod-500" />}
+                </span>
+              </button>
+            ))}
+        </div>,
+        document.body,
       )}
     </div>
   );
@@ -92,7 +201,7 @@ export default function ProductionOrders({ params }) {
   const [viewing, setViewing] = useState(null);
   const today = new Date().toISOString().slice(0, 10);
   /* New order starts with an empty SOP / Product field — user types or picks it */
-  const blankForm = () => ({ sopId: '', batches: 1, plannedDate: today, priority: 'Medium', lines: [] });
+  const blankForm = () => ({ sopId: '', productName: '', batches: 1, plannedDate: today, priority: 'Medium', lines: [] });
   const [form, setForm] = useState(blankForm);
 
   useEffect(() => { if (params.new) { setEditingId(null); setForm(blankForm()); setCreating(true); } }, [params.new]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -115,7 +224,7 @@ export default function ProductionOrders({ params }) {
   const previewOf = (code) => preview.find((p) => p.code === code);
   const sopStd = sopLines(state, form.sopId, form.batches);
   const customised = JSON.stringify(sopStd.map((l) => [l.code, l.qty])) !== JSON.stringify(form.lines.map((l) => [l.code, Number(l.qty)]));
-  const validLines = form.lines.some((l) => l.code && Number(l.qty) > 0);
+  const newMats = form.lines.filter((l) => !l.code && l.newName && Number(l.qty) > 0);
 
   const [editingId, setEditingId] = useState(null);
   const [deleting, setDeleting] = useState(null);
@@ -129,22 +238,32 @@ export default function ProductionOrders({ params }) {
   /* Changing SOP or batches reloads the standard quantities */
   const setRecipe = (patch) => {
     const next = { ...form, ...patch };
-    setForm({ ...next, lines: sopLines(state, next.sopId, next.batches) });
+    /* manual product (no SOP): keep the lines the user typed */
+    setForm({ ...next, lines: next.sopId ? sopLines(state, next.sopId, next.batches) : next.lines });
   };
-  const setLine = (i, patch) => setForm({ ...form, lines: form.lines.map((l, j) => (j === i ? { ...l, ...patch } : l)) });
-  const addLine = (group) => setForm({ ...form, lines: [...form.lines, { code: '', group, qty: '' }] });
-  const removeLine = (i) => setForm({ ...form, lines: form.lines.filter((_, j) => j !== i) });
+  /* functional updates: never overwrite newer form changes (product name, other lines) */
+  const setLine = (i, patch) => setForm((f) => ({ ...f, lines: f.lines.map((l, j) => (j === i ? { ...l, ...patch } : l)) }));
+  const addLine = (group) => setForm((f) => ({ ...f, lines: [...f.lines, { code: '', group, qty: '' }] }));
+  const removeLine = (i) => setForm((f) => ({ ...f, lines: f.lines.filter((_, j) => j !== i) }));
   const optionsFor = (group, i) => state.materials.filter((m) =>
     (group === 'PM' ? materialTypeOf(m.type) === 'Packing Material' : materialTypeOf(m.type) === 'Raw Material')
     && (m.active !== false || m.code === form.lines[i]?.code)
     && !form.lines.some((l, j) => j !== i && l.code === m.code));
 
+  /* No blocking validation: missing values get safe defaults so the order can always be saved */
   const save = () => {
+    const data = {
+      ...form,
+      batches: Number(form.batches) >= 1 ? Number(form.batches) : 1,
+      productName: form.sopId ? '' : (form.productName?.trim() || 'Untitled product'),
+    };
+    if (newMats.length) toast(`${newMats.length} new material(s) added to the Raw Material Master`);
+    if (!data.sopId) toast(`New SOP created for “${data.productName}”`);
     if (editingId) {
-      dispatch('UPDATE_ORDER', { orderId: editingId, patch: form });
+      dispatch('UPDATE_ORDER', { orderId: editingId, patch: data });
       toast(`Order ${editingId} updated`);
     } else {
-      dispatch('CREATE_ORDER', form);
+      dispatch('CREATE_ORDER', data);
       toast('Production order created');
     }
     setCreating(false);
@@ -210,10 +329,14 @@ export default function ProductionOrders({ params }) {
       </Card>
 
       <Modal open={creating} onClose={() => setCreating(false)} title={editingId ? `Edit order · ${editingId}` : 'New production order'} subtitle="Pick an SOP; the material list is filled from it. Add, remove or change materials for this order." width="max-w-3xl"
-        footer={<><Button variant="ghost" onClick={() => setCreating(false)}>Cancel</Button><Button variant="production" icon={editingId ? Save : Plus} onClick={save} disabled={!form.sopId || form.batches < 1 || !validLines}>{editingId ? 'Save changes' : 'Create order'}</Button></>}>
+        footer={<>
+          <Button variant="ghost" onClick={() => setCreating(false)}>Cancel</Button><Button variant="production" icon={editingId ? Save : Plus} onClick={save} >{editingId ? 'Save changes' : 'Create order'}</Button></>}>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="SOP / Product" className="sm:col-span-2">
-            <SopCombo sops={state.sops} value={form.sopId} onChange={(id) => setRecipe({ sopId: id })} />
+            <SopCombo sops={state.sops} value={form.sopId}
+              /* known SOP → reload its materials; manual product → keep the lines already entered */
+              onChange={(id) => (id ? setRecipe({ sopId: id, productName: '' }) : setForm((f) => ({ ...f, sopId: '' })))}
+              onText={(name) => setForm((f) => ({ ...f, productName: name }))} />
           </Field>
           <Field label="Number of batches" hint={formSop ? `1 batch = ${fmtNum(formSop.batchSize)} ${formSop.unit}` : ''}>
             <input type="number" min="1" className={inputCls} value={form.batches} onChange={(e) => setRecipe({ batches: e.target.value })} />
@@ -238,7 +361,7 @@ export default function ProductionOrders({ params }) {
             <table className="w-full min-w-[42rem] text-sm">
               <thead>
                 <tr className="bg-prod-50/70 text-left text-[0.75rem] font-semibold text-slate-700 dark:bg-white/[0.03] dark:text-slate-300">
-                  <th className="w-12 px-3 py-2">Type</th><th className="px-3 py-2">Material</th><th className="w-32 px-3 py-2">Qty for order</th>
+                  <th className="w-12 px-3 py-2">Type</th><th className="px-3 py-2">Material</th><th className="w-48 px-3 py-2">Qty for order</th>
                   <th className="w-28 px-3 py-2 text-right">Available</th><th className="w-24 px-3 py-2 text-right">Shortage</th><th className="w-10 px-2 py-2" />
                 </tr>
               </thead>
@@ -250,19 +373,23 @@ export default function ProductionOrders({ params }) {
                     <tr key={i} className="border-t border-line dark:border-white/[0.05]">
                       <td className="px-3 py-2"><span className={cx('rounded px-1.5 py-0.5 text-[0.625rem] font-bold', l.group === 'PM' ? 'bg-orange-50 text-orange-600' : 'bg-prod-50 text-prod-500')}>{l.group}</span></td>
                       <td className="px-3 py-2">
-                        <select className={cx(inputCls, 'h-9')} value={l.code} onChange={(e) => setLine(i, { code: e.target.value })} aria-label="Material">
-                          <option value="">Select {l.group === 'PM' ? 'packing material' : 'raw material'}…</option>
-                          {optionsFor(l.group, i).map((x) => <option key={x.code} value={x.code}>{x.code} · {x.name} ({x.unit})</option>)}
-                        </select>
+                        <MaterialCombo options={optionsFor(l.group, i)} all={state.materials} value={l.code} newName={l.newName}
+                          onChange={(code) => setLine(i, { code, newName: undefined, unit: undefined })}
+                          onNew={(name) => setLine(i, { code: '', newName: name, unit: l.unit || (l.group === 'PM' ? 'nos' : 'kg') })}
+                          placeholder={`Type or search ${l.group === 'PM' ? 'packing material' : 'raw material'}…`} />
                       </td>
                       <td className="px-3 py-2">
                         <div className="flex items-center gap-1.5">
-                          <input type="number" min="0" step="any" className={cx(inputCls, 'h-9')} value={l.qty} onChange={(e) => setLine(i, { qty: e.target.value })} aria-label="Quantity" />
-                          <span className="w-8 text-xs text-slate-400">{m?.unit}</span>
+                          <input type="number" min="0" step="any" className={cx(inputCls, 'h-9 min-w-[5.5rem] flex-1')} value={l.qty} onChange={(e) => setLine(i, { qty: e.target.value })} aria-label="Quantity" />
+                          {!l.code && l.newName
+                            ? <select className="h-9 rounded-md border border-sky-300 bg-white px-1 text-xs dark:bg-ink-900" value={l.unit || 'kg'} onChange={(e) => setLine(i, { unit: e.target.value })} aria-label="Unit">
+                              {['kg', 'L', 'g', 'mL', 'nos', 'MT'].map((u) => <option key={u}>{u}</option>)}
+                            </select>
+                            : <span className="w-8 text-xs text-slate-400">{m?.unit}</span>}
                         </div>
                       </td>
-                      <td className="whitespace-nowrap px-3 py-2 text-right tabular text-slate-600 dark:text-slate-300">{p ? fmtNum(p.available) : '—'}</td>
-                      <td className={cx('whitespace-nowrap px-3 py-2 text-right tabular font-semibold', p?.shortage > 0 ? 'text-rose-600' : 'text-slate-300')}>{p ? fmtNum(p.shortage) : '—'}</td>
+                      <td className="whitespace-nowrap px-3 py-2 text-right tabular text-slate-600 dark:text-slate-300">{p ? fmtNum(p.available) : !l.code && l.newName ? <span className="text-xs text-sky-600">0 · new</span> : '—'}</td>
+                      <td className={cx('whitespace-nowrap px-3 py-2 text-right tabular font-semibold', (p?.shortage > 0 || (!l.code && l.newName && Number(l.qty) > 0)) ? 'text-rose-600' : 'text-slate-300')}>{p ? fmtNum(p.shortage) : !l.code && l.newName && Number(l.qty) > 0 ? fmtNum(Number(l.qty)) : '—'}</td>
                       <td className="px-2 py-2">
                         <button type="button" onClick={() => removeLine(i)} className="rounded-md p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-500" aria-label="Remove material" title="Remove material">
                           <Trash2 size={15} />
@@ -272,7 +399,7 @@ export default function ProductionOrders({ params }) {
                   );
                 })}
                 {form.lines.length === 0 && (
-                  <tr><td colSpan={6} className="px-3 py-6 text-center text-sm text-slate-400">{form.sopId ? 'No materials. Add a line or reset to SOP.' : 'Enter or pick an SOP / Product above — its materials will load here.'}</td></tr>
+                  <tr><td colSpan={6} className="px-3 py-6 text-center text-sm text-slate-400">{form.sopId ? 'No materials. Add a line or reset to SOP.' : form.productName ? 'New product — add its materials with the buttons below.' : 'Enter or pick an SOP / Product above — its materials will load here.'}</td></tr>
                 )}
               </tbody>
             </table>
