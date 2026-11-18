@@ -209,10 +209,13 @@ function reducer(state, action) {
     }
     case 'ISSUE_PULL_OUT': {
       const req = s.requests.find((r) => r.id === p.reqId);
+      /* Confirm issue = stock OUT from the store: on hand goes down and an OUT entry is posted in Stock Movement */
       req.items.forEach((it) => {
         const mat = s.materials.find((m) => m.code === it.code);
-        mat.reserved += it.qty;
+        mat.onHand = Math.round((mat.onHand - it.qty) * 1000) / 1000;
+        postLedger(s, it.code, 'OUT', it.qty, `${req.orderId} · ${req.id} · issued to production`);
       });
+      req.stockOut = true;
       req.status = 'Issued';
       req.issuedBy = p.issuedBy;
       req.issuedAt = now();
@@ -229,7 +232,9 @@ function reducer(state, action) {
     }
     case 'OFFICE_ACCEPT': {
       const req = s.requests.find((r) => r.id === order.pullOutReqId);
-      (req?.items || []).forEach((it) => {
+      /* Stock already posted OUT at issue (new flow) → nothing more to deduct here.
+         Older issues that only reserved stock are posted OUT now, as before. */
+      if (!req?.stockOut) (req?.items || []).forEach((it) => {
         const mat = s.materials.find((m) => m.code === it.code);
         /* the only point where stock leaves: on hand − issued qty = balance (rounded to 3 decimals, e.g. 1650 − 340.5) */
         mat.reserved = Math.max(0, Math.round((mat.reserved - it.qty) * 1000) / 1000);
@@ -303,10 +308,16 @@ function reducer(state, action) {
       const req = s.requests.find((r) => r.id === p.reqId);
       req.items.forEach((it) => {
         const mat = s.materials.find((m) => m.code === it.code);
-        mat.reserved = Math.max(0, mat.reserved - it.qty);
+        if (req.stockOut) {
+          /* Stock went OUT on issue → bring it back with a reversal IN entry */
+          mat.onHand = Math.round((mat.onHand + it.qty) * 1000) / 1000;
+          postLedger(s, it.code, 'IN', it.qty, `${req.orderId} · ${req.id} · issue reversed`);
+        } else {
+          mat.reserved = Math.max(0, mat.reserved - it.qty);
+        }
       });
       req.status = 'Pending';
-      delete req.issuedBy; delete req.issuedAt;
+      delete req.issuedBy; delete req.issuedAt; delete req.stockOut;
       const o = s.orders.find((x) => x.id === req.orderId);
       if (o) stamp(o, 'Pull Out Requested', 'Inventory');
       log(s, 'inventory', `Issue of ${req.id} reversed, stock un-reserved`);

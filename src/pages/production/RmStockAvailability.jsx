@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Gauge, AlertTriangle, CheckCircle2, ShoppingCart, PackageOpen, Hourglass, ArrowRight, Boxes } from 'lucide-react';
 import { useStore, requirementFor, available, ledgerBalance, ledgerEntries } from '../../store/StoreContext';
-import { Card, CardHeader, PageHeader, Button, Badge, Meter, Mono, EmptyState, fmtNum, fmtDate, cx, useToast } from '../../components/ui';
+import { Card, CardHeader, PageHeader, Button, Badge, Meter, Mono, EmptyState, Modal, fmtNum, fmtDate, cx, useToast } from '../../components/ui';
 import { navigate } from '../../router';
 import { RowActions, ConfirmDialog } from '../../components/actions';
 import OrderDetail from '../../components/OrderDetail';
@@ -35,7 +35,9 @@ export default function RmStockAvailability({ params }) {
     dispatch('SEND_PURCHASE_REQ', { orderId: order.id });
     toast('Purchase requirement sent to Inventory');
   };
+  const [pullOpen, setPullOpen] = useState(false);
   const requestPull = () => {
+    setPullOpen(false);
     const id = order.id;
     dispatch('CHECK_RM', { orderId: id });
     dispatch('REQUEST_PULL_OUT', { orderId: id });
@@ -100,7 +102,7 @@ export default function RmStockAvailability({ params }) {
                   ) : short ? (
                     <Button variant="warn" icon={ShoppingCart} onClick={sendPurchase}>Send purchase requirement</Button>
                   ) : (
-                    <Button variant="production" icon={PackageOpen} onClick={requestPull} disabled={!ledgerOk}
+                    <Button variant="production" icon={PackageOpen} onClick={() => setPullOpen(true)} disabled={!ledgerOk}
                       title={ledgerOk ? undefined : 'Fix the stock ledger mismatch before requesting material'}>Request material pull out</Button>
                   )}
                 </div>
@@ -171,6 +173,50 @@ export default function RmStockAvailability({ params }) {
           <Card><EmptyState icon={Gauge} title="No order selected" text="Create a production order first." /></Card>
         )}
       </div>
+
+      {/* Pull out request: shows the material that will go OUT of the store to Production */}
+      <Modal open={pullOpen && !!order} onClose={() => setPullOpen(false)} title="Request material pull out" width="max-w-2xl"
+        subtitle={order && `${order.id} · ${sop?.product} · ${order.batches} × ${fmtNum(sop?.batchSize)} ${sop?.unit}`}
+        footer={<><Button variant="ghost" onClick={() => setPullOpen(false)}>Cancel</Button><Button variant="production" icon={PackageOpen} onClick={requestPull}>Send pull out request</Button></>}>
+        {order && (
+          <>
+            <div className="mb-1.5 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
+              Material out <span className="normal-case tracking-normal text-slate-400">· Store <ArrowRight size={12} className="inline" /> Production</span>
+            </div>
+            <div className="overflow-x-auto rounded-lg border border-line dark:border-white/[0.07]">
+              <table className="w-full min-w-[34rem] text-sm">
+                <thead>
+                  <tr className="bg-prod-50/70 text-left text-[0.75rem] font-semibold text-slate-700 dark:bg-white/[0.03] dark:text-slate-300">
+                    <th className="px-3 py-2">Material</th>
+                    <th className="px-3 py-2 text-right">Available now</th>
+                    <th className="px-3 py-2 text-right">Pull out</th>
+                    <th className="px-3 py-2 text-right">Available after</th>
+                    <th className="px-3 py-2 text-right">To production</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {lines.map((l) => {
+                    const after = Math.round((l.available - l.required) * 1000) / 1000;
+                    return (
+                      <tr key={l.code} className="border-t border-line dark:border-white/[0.05]">
+                        <td className="px-3 py-2"><div className="font-medium">{l.name}</div><div className="text-[0.6875rem] text-slate-400">{l.code} · {l.group}</div></td>
+                        <td className="tabular px-3 py-2 text-right">{fmtNum(l.available)} <span className="text-xs text-slate-400">{l.unit}</span></td>
+                        <td className="tabular px-3 py-2 text-right font-semibold text-rose-600">−{fmtNum(l.required)} <span className="text-xs font-normal">{l.unit}</span></td>
+                        <td className="px-3 py-2 text-right">
+                          <b className={cx('tabular', after < 0 && 'text-rose-600')}>{fmtNum(after)}</b> <span className="text-xs text-slate-400">{l.unit}</span>
+                          <div className="text-[0.6875rem] text-slate-400">{fmtNum(l.available)} − {fmtNum(l.required)} = {fmtNum(after)}</div>
+                        </td>
+                        <td className="tabular px-3 py-2 text-right font-semibold text-emerald-600">+{fmtNum(l.required)} <span className="text-xs font-normal">{l.unit}</span></td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <p className="mt-3 text-xs text-slate-500">The request goes to Inventory. When Inventory confirms the issue, the stock OUT entry is posted in Stock Movement.</p>
+          </>
+        )}
+      </Modal>
 
       {viewing && <OrderDetail orderId={viewing} onClose={() => setViewing(null)} />}
       <ConfirmDialog open={!!deleting} onClose={() => setDeleting(null)} title="Delete production order?"

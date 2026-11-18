@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { ClipboardList, Plus, Search, Gauge, PackageCheck, FileCheck2, Save, Trash2, RotateCcw } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { ClipboardList, Plus, Search, Gauge, PackageCheck, FileCheck2, Save, Trash2, RotateCcw, ChevronDown, Check } from 'lucide-react';
 import { RowActions, ConfirmDialog } from '../../components/actions';
 import { orderEditBlock, materialTypeOf } from '../../store/rules';
 import { useStore, requirementFor, sopLines } from '../../store/StoreContext';
@@ -7,6 +7,78 @@ import { Card, PageHeader, Button, Badge, Table, Modal, Field, Mono, inputCls, f
 import OrderFlow from '../../components/OrderFlow';
 import OrderDetail from '../../components/OrderDetail';
 import { navigate } from '../../router';
+
+/*
+  SOP / Product field:
+  - Type the product name (or SOP no.) manually — no list pops up while typing.
+  - The list opens only from the ▾ button.
+  - Typed text is matched to an SOP when you press Enter or leave the field.
+*/
+function SopCombo({ sops, value, onChange }) {
+  const sel = sops.find((s) => s.id === value);
+  const label = (s) => `${s.id} · ${s.product} (${s.version})`;
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState(sel ? label(sel) : '');
+  const ref = useRef(null);
+
+  /* Keep the box in step when the SOP changes from outside (open edit, list pick) */
+  useEffect(() => { if (sel) setText(label(sel)); }, [value]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const close = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, [open]);
+
+  const norm = (v) => v.trim().toLowerCase();
+  const findMatch = (v) => {
+    const t = norm(v);
+    if (!t) return null;
+    return sops.find((s) => norm(label(s)) === t || norm(s.id) === t || norm(s.product) === t || norm(`${s.product} (${s.version})`) === t) || null;
+  };
+  const match = findMatch(text);
+  const typedUnknown = text.trim() && !match;
+
+  /* Resolve the typed text to an SOP */
+  const commit = () => {
+    if (match) { if (match.id !== value) onChange(match.id); setText(label(match)); }
+    else if (text.trim() && value) onChange('');
+  };
+  const pick = (s) => { onChange(s.id); setText(label(s)); setOpen(false); };
+
+  return (
+    <div ref={ref}>
+      <div className="relative">
+        <input className={cx(inputCls, 'pr-10', typedUnknown && 'border-amber-400')}
+          placeholder="Type product name / SOP no. or pick from ▾"
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onBlur={commit}
+          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); commit(); } }} />
+        <button type="button" title="Show SOP list" onMouseDown={(e) => e.preventDefault()} onClick={() => setOpen((o) => !o)}
+          className="absolute right-1.5 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md text-slate-500 hover:bg-prod-50 hover:text-prod-500 dark:hover:bg-white/[0.06]">
+          <ChevronDown size={16} className={cx('transition', open && 'rotate-180')} />
+        </button>
+        {open && (
+          <div className="absolute left-0 right-0 z-30 mt-1 max-h-64 overflow-y-auto rounded-xl border border-slate-200 bg-white py-1 shadow-lg scrollbar-thin dark:border-white/10 dark:bg-ink-800">
+            {sops.map((s) => (
+              <button key={s.id} type="button" onClick={() => pick(s)}
+                className={cx('flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm hover:bg-prod-50 dark:hover:bg-white/[0.06]',
+                  s.id === value && 'bg-prod-50/60 font-semibold text-prod-600 dark:text-prod-300')}>
+                <span><span className="font-medium">{s.product}</span> <span className="text-xs text-slate-400">({s.version})</span></span>
+                <span className="flex items-center gap-2"><Mono>{s.id}</Mono>{s.id === value && <Check size={14} className="text-prod-500" />}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+      {typedUnknown && (
+        <div className="mt-1 text-[0.6875rem] text-amber-600">No SOP found for “{text.trim()}” — check the name or pick one from the ▾ list.</div>
+      )}
+    </div>
+  );
+}
 
 const FILTERS = ['All', 'Draft', 'Shortage', 'Awaiting Purchase', 'Ready', 'In progress', 'Accepted'];
 const IN_PROGRESS = ['Pull Out Requested', 'Material Issued', 'Production Verified', 'SOP Submitted', 'Stock Verified'];
@@ -19,7 +91,8 @@ export default function ProductionOrders({ params }) {
   const [creating, setCreating] = useState(!!params.new);
   const [viewing, setViewing] = useState(null);
   const today = new Date().toISOString().slice(0, 10);
-  const blankForm = () => ({ sopId: state.sops[0]?.id, batches: 1, plannedDate: today, priority: 'Medium', lines: sopLines(state, state.sops[0]?.id, 1) });
+  /* New order starts with an empty SOP / Product field — user types or picks it */
+  const blankForm = () => ({ sopId: '', batches: 1, plannedDate: today, priority: 'Medium', lines: [] });
   const [form, setForm] = useState(blankForm);
 
   useEffect(() => { if (params.new) { setEditingId(null); setForm(blankForm()); setCreating(true); } }, [params.new]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -140,9 +213,7 @@ export default function ProductionOrders({ params }) {
         footer={<><Button variant="ghost" onClick={() => setCreating(false)}>Cancel</Button><Button variant="production" icon={editingId ? Save : Plus} onClick={save} disabled={!form.sopId || form.batches < 1 || !validLines}>{editingId ? 'Save changes' : 'Create order'}</Button></>}>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="SOP / Product" className="sm:col-span-2">
-            <select className={inputCls} value={form.sopId} onChange={(e) => setRecipe({ sopId: e.target.value })}>
-              {state.sops.map((s) => <option key={s.id} value={s.id}>{s.id} · {s.product} ({s.version})</option>)}
-            </select>
+            <SopCombo sops={state.sops} value={form.sopId} onChange={(id) => setRecipe({ sopId: id })} />
           </Field>
           <Field label="Number of batches" hint={formSop ? `1 batch = ${fmtNum(formSop.batchSize)} ${formSop.unit}` : ''}>
             <input type="number" min="1" className={inputCls} value={form.batches} onChange={(e) => setRecipe({ batches: e.target.value })} />
@@ -150,25 +221,18 @@ export default function ProductionOrders({ params }) {
           <Field label="Planned date">
             <input type="date" className={inputCls} value={form.plannedDate} onChange={(e) => setForm({ ...form, plannedDate: e.target.value })} />
           </Field>
-          <Field label="Priority" className="sm:col-span-2">
-            <div className="grid grid-cols-3 gap-2">
-              {['Low', 'Medium', 'High'].map((p) => (
-                <button key={p} type="button" onClick={() => setForm({ ...form, priority: p })}
-                  className={cx('h-10 rounded-lg border text-sm font-semibold transition', form.priority === p ? 'border-prod-500 bg-prod-50 text-prod-700 ring-4 ring-prod-500/10 dark:bg-prod-500/10 dark:text-prod-100' : 'border-slate-200 text-slate-500 dark:border-white/10')}>{p}</button>
-              ))}
-            </div>
-          </Field>
+          {/* Priority field hidden from the form — new orders keep the default 'Medium', edits keep their existing priority */}
         </div>
         {/* Editable material list for this order */}
         <div className="mt-5">
           <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Material requirement</span>
-              {customised
+              {!form.sopId ? null : customised
                 ? <span className="rounded-full bg-orange-50 px-2 py-0.5 text-[0.6875rem] font-semibold text-orange-700 dark:bg-orange-500/10 dark:text-orange-300">Customised for this order</span>
                 : <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[0.6875rem] font-semibold text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">As per SOP</span>}
             </div>
-            {customised && <Button size="sm" variant="ghost" icon={RotateCcw} onClick={() => setForm({ ...form, lines: sopStd })}>Reset to SOP</Button>}
+            {customised && form.sopId && <Button size="sm" variant="ghost" icon={RotateCcw} onClick={() => setForm({ ...form, lines: sopStd })}>Reset to SOP</Button>}
           </div>
           <div className="overflow-x-auto rounded-lg border border-line dark:border-white/[0.07]">
             <table className="w-full min-w-[42rem] text-sm">
@@ -208,7 +272,7 @@ export default function ProductionOrders({ params }) {
                   );
                 })}
                 {form.lines.length === 0 && (
-                  <tr><td colSpan={6} className="px-3 py-6 text-center text-sm text-slate-400">No materials. Add a line or reset to SOP.</td></tr>
+                  <tr><td colSpan={6} className="px-3 py-6 text-center text-sm text-slate-400">{form.sopId ? 'No materials. Add a line or reset to SOP.' : 'Enter or pick an SOP / Product above — its materials will load here.'}</td></tr>
                 )}
               </tbody>
             </table>

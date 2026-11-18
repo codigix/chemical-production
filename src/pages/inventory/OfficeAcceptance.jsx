@@ -54,7 +54,9 @@ export default function OfficeAcceptance() {
   const reqOf = (o) => state.requests.find((r) => r.id === o.pullOutReqId);
   /* Per material: on hand now − issued qty = balance after acceptance (same maths as the ledger OUT entry) */
   const r3 = (n) => Math.round(Number(n || 0) * 1000) / 1000;
-  const movements = cur ? (reqOf(cur)?.items || []).map((it) => {
+  /* New flow: stock OUT was already posted when Inventory confirmed the issue */
+  const outOnIssue = !!(cur && reqOf(cur)?.stockOut);
+  const movements = cur && !outOnIssue ? (reqOf(cur)?.items || []).map((it) => {
     const m = mat(it.code);
     const onHand = m?.onHand ?? 0;
     return { code: it.code, name: m?.name ?? it.code, unit: m?.unit ?? '', onHand, out: it.qty, after: r3(onHand - it.qty) };
@@ -68,7 +70,7 @@ export default function OfficeAcceptance() {
 
   return (
     <>
-      <PageHeader module="inventory" icon={Stamp} title="SOP Office Acceptance" subtitle="Final office sign-off. On acceptance the issued material is posted out of the stock ledger." />
+      <PageHeader module="inventory" icon={Stamp} title="SOP Office Acceptance" subtitle="Final office sign-off. Issued material is already posted OUT in Stock Movement at issue." />
 
       <h2 className="mb-3 text-sm font-bold uppercase tracking-wider text-slate-500">Awaiting signature · {queue.length}</h2>
       {queue.length === 0 ? (
@@ -109,8 +111,40 @@ export default function OfficeAcceptance() {
 
       <Modal open={!!cur} onClose={() => setCur(null)} width="max-w-2xl" title={cur && `Office acceptance · ${cur.id}`} subtitle={cur && sopOf(cur)?.product}
         footer={<><Button variant="ghost" onClick={() => setCur(null)}>Cancel</Button><Button variant="inventory" icon={BadgeCheck} disabled={!sig || !by || movements.some((mv) => mv.after < 0)} onClick={accept}>Accept & update stock</Button></>}>
+        {cur && outOnIssue && (
+          <>
+            <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
+              <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Stock movement</span>
+              <span className="text-xs text-emerald-600">✓ Stock OUT already posted on issue ({fmtDateTime(reqOf(cur)?.issuedAt)}) · no further deduction</span>
+            </div>
+            <div className="overflow-x-auto rounded-lg border border-line dark:border-white/[0.07]">
+              <table className="w-full min-w-[30rem] text-sm">
+                <thead>
+                  <tr className="bg-prod-50/70 text-left text-[0.75rem] font-semibold text-slate-700 dark:bg-white/[0.03] dark:text-slate-300">
+                    <th className="px-3 py-2">Material</th>
+                    <th className="px-3 py-2 text-right">Issued OUT</th>
+                    <th className="px-3 py-2 text-right">Stock now</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(reqOf(cur)?.items || []).map((it) => {
+                    const m = mat(it.code);
+                    return (
+                      <tr key={it.code} className="border-t border-line dark:border-white/[0.05]">
+                        <td className="px-3 py-2"><div className="font-medium">{m?.name}</div><div className="text-[0.6875rem] text-slate-400">{it.code} · {reqOf(cur)?.id}</div></td>
+                        <td className="whitespace-nowrap px-3 py-2 text-right tabular font-semibold text-rose-600">−{fmtNum(it.qty)} <span className="text-xs font-normal text-slate-400">{m?.unit}</span></td>
+                        <td className="whitespace-nowrap px-3 py-2 text-right tabular font-semibold">{fmtNum(m?.onHand)} <span className="text-xs font-normal text-slate-400">{m?.unit}</span></td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
         {cur && (
           <>
+            {!outOnIssue && <>
             <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
               <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Stock movement on acceptance</span>
               <span className="text-xs text-slate-500">Stock leaves the ledger only when you accept. Until then it is only reserved.</span>
@@ -147,6 +181,7 @@ export default function OfficeAcceptance() {
             {movements.some((mv) => mv.after < 0) && (
               <p className="mt-2 text-xs font-semibold text-rose-600">A balance would go below zero: check the stock ledger before accepting.</p>
             )}
+            </>}
             <Field label="Accepted by" className="mt-4"><input className={inputCls} value={by} onChange={(e) => setBy(e.target.value)} /></Field>
             <div className="mt-4 text-xs font-semibold text-slate-600 dark:text-slate-300">Signature</div>
             <div className="mt-1.5"><SignaturePad onChange={setSig} /></div>

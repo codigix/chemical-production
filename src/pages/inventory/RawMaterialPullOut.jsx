@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { PackageMinus, CheckCircle2, AlertTriangle, MapPin, Truck } from 'lucide-react';
+import { PackageMinus, CheckCircle2, AlertTriangle, MapPin, Truck, ArrowRight } from 'lucide-react';
 import { useStore, available } from '../../store/StoreContext';
 import { Card, CardHeader, PageHeader, Button, Badge, Modal, Field, Mono, Table, EmptyState, Meter, inputCls, fmtNum, fmtDateTime, cx, useToast } from '../../components/ui';
 import RequestItems from '../../components/RequestItems';
@@ -24,7 +24,7 @@ export default function RawMaterialPullOut() {
 
   return (
     <>
-      <PageHeader module="inventory" icon={PackageMinus} title="Raw Material Pull Out" subtitle="Pick and issue raw material to the shop floor. Stock is reserved now and posted out on office acceptance." />
+      <PageHeader module="inventory" icon={PackageMinus} title="Raw Material Pull Out" subtitle="Pick and issue raw material to the shop floor. Stock OUT is posted to Stock Movement on Confirm issue." />
 
       <h2 className="mb-3 text-sm font-bold uppercase tracking-wider text-slate-500">To issue · {pending.length}</h2>
       {pending.length === 0 ? (
@@ -84,20 +84,49 @@ export default function RawMaterialPullOut() {
         />
       </Card>
 
-      <Modal open={!!issue} onClose={() => setIssue(null)} title="Issue raw material" subtitle={issue && `${issue.id} for ${issue.orderId}`}
+      <Modal open={!!issue} onClose={() => setIssue(null)} title="Issue raw material" subtitle={issue && `${issue.id} for ${issue.orderId}`} width="max-w-2xl"
         footer={<><Button variant="ghost" onClick={() => setIssue(null)}>Cancel</Button><Button variant="inventory" icon={CheckCircle2} onClick={confirm}>Confirm issue</Button></>}>
         {issue && (
           <>
             <div className="mb-4 flex gap-3 rounded-lg bg-amber-50 p-3 text-sm text-amber-800 dark:bg-amber-500/10 dark:text-amber-200">
               <AlertTriangle size={18} className="mt-0.5 shrink-0" />
-              Quantities will be reserved against this order. The stock ledger is posted when the office accepts the SOP.
+              On Confirm issue the material goes OUT of the store to Production, and a stock OUT entry is posted in Stock Movement.
             </div>
-            <div className="space-y-1.5">
-              {issue.items.map((it) => (
-                <div key={it.code} className={cx('flex justify-between rounded-lg bg-slate-50 px-3 py-2 text-sm dark:bg-white/[0.03]')}>
-                  <span>{mat(it.code)?.name}</span><b className="tabular">{fmtNum(it.qty)} {mat(it.code)?.unit}</b>
-                </div>
-              ))}
+            {/* Stock movement on issue: Store → Production */}
+            <div className="mb-1.5 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
+              Stock movement on issue <span className="normal-case tracking-normal text-slate-400">· Store <ArrowRight size={12} className="inline" /> Production</span>
+            </div>
+            <div className="overflow-x-auto rounded-lg border border-line dark:border-white/[0.07]">
+              <table className="w-full min-w-[34rem] text-sm">
+                <thead>
+                  <tr className="bg-slate-50 text-left text-[0.75rem] font-semibold text-slate-600 dark:bg-white/[0.03] dark:text-slate-300">
+                    <th className="px-3 py-2">Material</th>
+                    <th className="px-3 py-2 text-right">Store available</th>
+                    <th className="px-3 py-2 text-right">Issue OUT</th>
+                    <th className="px-3 py-2 text-right">Store after</th>
+                    <th className="px-3 py-2 text-right">Production IN</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {issue.items.map((it) => {
+                    const m = mat(it.code);
+                    const av = available(m);
+                    const after = Math.round((av - it.qty) * 1000) / 1000;
+                    return (
+                      <tr key={it.code} className="border-t border-slate-100 dark:border-white/[0.05]">
+                        <td className="px-3 py-2"><div className="font-medium">{m?.name}</div><div className="text-[0.6875rem] text-slate-400">{it.code}</div></td>
+                        <td className="tabular px-3 py-2 text-right">{fmtNum(av)} <span className="text-xs text-slate-400">{m?.unit}</span></td>
+                        <td className="tabular px-3 py-2 text-right font-semibold text-rose-600">−{fmtNum(it.qty)} <span className="text-xs font-normal">{m?.unit}</span></td>
+                        <td className="px-3 py-2 text-right">
+                          <b className={cx('tabular', after < 0 && 'text-rose-600')}>{fmtNum(after)}</b> <span className="text-xs text-slate-400">{m?.unit}</span>
+                          <div className="text-[0.6875rem] text-slate-400">{fmtNum(av)} − {fmtNum(it.qty)} = {fmtNum(after)}</div>
+                        </td>
+                        <td className="tabular px-3 py-2 text-right font-semibold text-emerald-600">+{fmtNum(it.qty)} <span className="text-xs font-normal">{m?.unit}</span></td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
             <Field label="Issued by" className="mt-4"><input className={inputCls} value={by} onChange={(e) => setBy(e.target.value)} /></Field>
           </>
