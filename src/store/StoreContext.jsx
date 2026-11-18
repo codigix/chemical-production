@@ -231,8 +231,9 @@ function reducer(state, action) {
       const req = s.requests.find((r) => r.id === order.pullOutReqId);
       (req?.items || []).forEach((it) => {
         const mat = s.materials.find((m) => m.code === it.code);
-        mat.reserved = Math.max(0, mat.reserved - it.qty);
-        mat.onHand -= it.qty;
+        /* the only point where stock leaves: on hand − issued qty = balance (rounded to 3 decimals, e.g. 1650 − 340.5) */
+        mat.reserved = Math.max(0, Math.round((mat.reserved - it.qty) * 1000) / 1000);
+        mat.onHand = Math.round((mat.onHand - it.qty) * 1000) / 1000;
         postLedger(s, it.code, 'OUT', it.qty, `${order.id} · ${req.id}`);
       });
       if (req) req.status = 'Closed';
@@ -397,6 +398,17 @@ function normalize(data) {
   data.sops = data.sops || [];
   seed.sops.forEach((sp) => { if (!data.sops.some((x) => x.id === sp.id)) data.sops.push(sp); });
   if (!data.company) data.company = seed.company;
+  /* One-off repair: POs raised before the fix were rounded up to the nearest 50.
+     Only open (Ordered) POs linked to a requirement, and only lines that hold exactly that rounded figure. */
+  (data.purchases || []).forEach((po) => {
+    if (po.status !== 'Ordered' || !po.reqId) return;
+    const req = (data.requests || []).find((r) => r.id === po.reqId);
+    if (!req) return;
+    po.items = po.items.map((it) => {
+      const need = req.items.find((x) => x.code === it.code)?.qty;
+      return need != null && need !== it.qty && it.qty === Math.ceil(need / 50) * 50 ? { ...it, qty: need } : it;
+    });
+  });
   return data;
 }
 

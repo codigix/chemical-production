@@ -17,14 +17,22 @@ import {
 
 const SUPPLIERS = ['Gujarat Alkalies Ltd.', 'Deepak Chem Traders', 'Aarti Industrial Supply', 'Shree Ram Acids', 'National Peroxide Co.'];
 
-function ItemLines({ items, onChange, withRate = false }) {
+function ItemLines({ items, onChange, withRate = false, requiredOf }) {
   const { state } = useStore();
   const mat = (c) => state.materials.find((m) => m.code === c);
   return (
     <div className="space-y-2">
-      {items.map((it, i) => (
+      {items.map((it, i) => {
+        const req = requiredOf?.(it.code);
+        return (
         <div key={it.code} className={withRate ? 'grid grid-cols-[1fr_7rem_7rem] items-center gap-2' : 'grid grid-cols-[1fr_8rem] items-center gap-2'}>
-          <span className="text-sm font-medium">{mat(it.code)?.name} <span className="text-xs text-slate-400">({mat(it.code)?.unit})</span></span>
+          <span className="text-sm font-medium">{mat(it.code)?.name} <span className="text-xs text-slate-400">({mat(it.code)?.unit})</span>
+            {req != null && (
+              <span className={`block text-[0.6875rem] font-semibold ${Number(it.qty) < req ? 'text-rose-600' : Number(it.qty) > req ? 'text-orange-600' : 'text-emerald-600'}`}>
+                Required {fmtNum(req)} {mat(it.code)?.unit}{Number(it.qty) > req ? ` · ordering ${fmtNum(Number(it.qty) - req)} extra` : ''}
+              </span>
+            )}
+          </span>
           <input type="number" min="0" className={inputCls} value={it.qty} aria-label="Quantity"
             onChange={(e) => onChange(items.map((x, j) => (j === i ? { ...x, qty: e.target.value } : x)))} />
           {withRate && (
@@ -32,14 +40,16 @@ function ItemLines({ items, onChange, withRate = false }) {
               onChange={(e) => onChange(items.map((x, j) => (j === i ? { ...x, rate: e.target.value } : x)))} />
           )}
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
 
 /* ---------- Material request (purchase requirement / pull out) ---------- */
 export function RequestRowActions({ req }) {
-  const { dispatch } = useStore();
+  const { state, dispatch } = useStore();
+  const linkedPo = req.purchaseId ? state.purchases.find((p) => p.id === req.purchaseId) : null;
   const toast = useToast();
   const [mode, setMode] = useState(null);
   const [items, setItems] = useState(req.items);
@@ -53,6 +63,35 @@ export function RequestRowActions({ req }) {
           ['Issued by', req.issuedBy], ['Issued at', req.issuedAt && fmtDateTime(req.issuedAt)], ['Linked PO', req.purchaseId]].filter(([, v]) => v)}>
         <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">Materials</div>
         <RequestItems items={req.items} max={20} />
+        {/* Required vs what the linked PO actually orders / received */}
+        {linkedPo && (
+          <div className="mt-4 overflow-hidden rounded-lg border border-line dark:border-white/[0.07]">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-prod-50/70 text-left text-[0.75rem] font-semibold text-slate-700 dark:bg-white/[0.03] dark:text-slate-300">
+                  <th className="px-3 py-2">Material</th><th className="px-3 py-2 text-right">Required</th>
+                  <th className="px-3 py-2 text-right">On {linkedPo.id}</th><th className="px-3 py-2 text-right">Received</th>
+                </tr>
+              </thead>
+              <tbody>
+                {req.items.map((it) => {
+                  const m = state.materials.find((x) => x.code === it.code);
+                  const i = linkedPo.items.findIndex((x) => x.code === it.code);
+                  const ordered = i >= 0 ? linkedPo.items[i].qty : 0;
+                  const received = linkedPo.received?.[i]?.qty;
+                  return (
+                    <tr key={it.code} className="border-t border-line dark:border-white/[0.05]">
+                      <td className="px-3 py-2">{m?.name ?? it.code}</td>
+                      <td className="px-3 py-2 text-right tabular">{fmtNum(it.qty)} {m?.unit}</td>
+                      <td className={`px-3 py-2 text-right tabular font-semibold ${ordered < it.qty ? 'text-rose-600' : ordered > it.qty ? 'text-orange-600' : 'text-emerald-600'}`}>{fmtNum(ordered)} {m?.unit}</td>
+                      <td className="px-3 py-2 text-right tabular">{received != null ? `${fmtNum(received)} ${m?.unit}` : '—'}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </DetailModal>
       <Modal open={mode === 'edit'} onClose={() => setMode(null)} title={`Edit request ${req.id}`} subtitle="Change quantities before Inventory acts on it."
         footer={<><Button variant="ghost" onClick={() => setMode(null)}>Cancel</Button>
@@ -106,7 +145,8 @@ export function PurchaseRowActions({ po }) {
               <Field label="Expected delivery"><input type="date" className={inputCls} value={f.expected} onChange={(e) => setF({ ...f, expected: e.target.value })} /></Field>
             </div>
             <div className="mb-2 mt-4 grid grid-cols-[1fr_7rem_7rem] gap-2 text-[0.6875rem] font-semibold uppercase tracking-wider text-slate-500"><span>Material</span><span>Qty</span><span>Rate ₹</span></div>
-            <ItemLines items={f.items} withRate onChange={(items) => setF({ ...f, items })} />
+            <ItemLines items={f.items} withRate onChange={(items) => setF({ ...f, items })}
+              requiredOf={po.reqId ? (code) => state.requests.find((r) => r.id === po.reqId)?.items.find((x) => x.code === code)?.qty : undefined} />
           </>
         )}
       </Modal>

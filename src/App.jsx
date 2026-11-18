@@ -19,6 +19,7 @@ import RawMaterialPullOut from './pages/inventory/RawMaterialPullOut';
 import StockVerification from './pages/inventory/StockVerification';
 import OfficeAcceptance from './pages/inventory/OfficeAcceptance';
 import StockLedger from './pages/inventory/StockLedger';
+import StockMovement from './pages/inventory/StockMovement';
 
 const PAGES = {
   dashboard: Dashboard,
@@ -36,6 +37,7 @@ const PAGES = {
   'inventory/stock-verification': StockVerification,
   'inventory/office-acceptance': OfficeAcceptance,
   'inventory/ledger': StockLedger,
+  'inventory/movements': StockMovement,
 };
 
 export default function App() {

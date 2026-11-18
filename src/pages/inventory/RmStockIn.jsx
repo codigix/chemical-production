@@ -120,7 +120,14 @@ export default function RmStockIn({ params }) {
                                 <div className="text-[0.72rem] text-slate-500"><Mono className="text-prod-500">{l.code}</Mono> · On hand {fmtNum(m?.onHand)} {m?.unit}</div>
                               </td>
                               <td className="whitespace-nowrap px-3 py-3 text-right tabular">₹{l.rate} <span className="text-xs text-slate-400">/ {m?.unit}</span></td>
-                              <td className="whitespace-nowrap px-3 py-3 text-right tabular">{fmtNum(l.qty)} <span className="text-xs text-slate-400">{m?.unit}</span></td>
+                              <td className="whitespace-nowrap px-3 py-3 text-right tabular">
+                                {fmtNum(l.qty)} <span className="text-xs text-slate-400">{m?.unit}</span>
+                                {(() => {
+                                  const need = po.reqId && state.requests.find((r) => r.id === po.reqId)?.items.find((x) => x.code === l.code)?.qty;
+                                  return need != null && need !== false && need !== l.qty
+                                    ? <div className="text-[0.6875rem] font-semibold text-orange-600">Required {fmtNum(need)}</div> : null;
+                                })()}
+                              </td>
                               <td className="px-3 py-3">
                                 <input type="number" min="0" className={cx(inputCls, 'h-9')} value={recv[l.i] ?? ''} aria-label={`Received quantity for ${m?.name}`}
                                   onChange={(e) => setRecv(recv.map((v, j) => (j === l.i ? e.target.value : v)))} />

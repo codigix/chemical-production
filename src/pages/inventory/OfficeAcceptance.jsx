@@ -52,6 +52,13 @@ export default function OfficeAcceptance() {
   const sopOf = (o) => state.sops.find((s) => s.id === o.sopId);
   const mat = (c) => state.materials.find((m) => m.code === c);
   const reqOf = (o) => state.requests.find((r) => r.id === o.pullOutReqId);
+  /* Per material: on hand now − issued qty = balance after acceptance (same maths as the ledger OUT entry) */
+  const r3 = (n) => Math.round(Number(n || 0) * 1000) / 1000;
+  const movements = cur ? (reqOf(cur)?.items || []).map((it) => {
+    const m = mat(it.code);
+    const onHand = m?.onHand ?? 0;
+    return { code: it.code, name: m?.name ?? it.code, unit: m?.unit ?? '', onHand, out: it.qty, after: r3(onHand - it.qty) };
+  }) : [];
 
   const accept = () => {
     dispatch('OFFICE_ACCEPT', { orderId: cur.id, by, signature: sig });
@@ -100,19 +107,46 @@ export default function OfficeAcceptance() {
         />
       </Card>
 
-      <Modal open={!!cur} onClose={() => setCur(null)} title={cur && `Office acceptance · ${cur.id}`} subtitle={cur && sopOf(cur)?.product}
-        footer={<><Button variant="ghost" onClick={() => setCur(null)}>Cancel</Button><Button variant="inventory" icon={BadgeCheck} disabled={!sig || !by} onClick={accept}>Accept & update stock</Button></>}>
+      <Modal open={!!cur} onClose={() => setCur(null)} width="max-w-2xl" title={cur && `Office acceptance · ${cur.id}`} subtitle={cur && sopOf(cur)?.product}
+        footer={<><Button variant="ghost" onClick={() => setCur(null)}>Cancel</Button><Button variant="inventory" icon={BadgeCheck} disabled={!sig || !by || movements.some((mv) => mv.after < 0)} onClick={accept}>Accept & update stock</Button></>}>
         {cur && (
           <>
-            <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">Stock that will be posted OUT</div>
-            <div className="space-y-1.5">
-              {(reqOf(cur)?.items || []).map((it) => (
-                <div key={it.code} className="flex justify-between rounded-lg bg-slate-50 px-3 py-2 text-sm dark:bg-white/[0.03]">
-                  <span>{mat(it.code)?.name}</span>
-                  <span className="tabular"><b className="text-rose-600">−{fmtNum(it.qty)}</b> <span className="text-xs text-slate-400">→ {fmtNum(mat(it.code)?.onHand - it.qty)} {mat(it.code)?.unit} left</span></span>
-                </div>
-              ))}
+            <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
+              <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Stock movement on acceptance</span>
+              <span className="text-xs text-slate-500">Stock leaves the ledger only when you accept. Until then it is only reserved.</span>
             </div>
+            {/* On hand − stock OUT = balance, per material, exactly what the ledger OUT entry will record */}
+            <div className="overflow-x-auto rounded-lg border border-line dark:border-white/[0.07]">
+              <table className="w-full min-w-[34rem] text-sm">
+                <thead>
+                  <tr className="bg-prod-50/70 text-left text-[0.75rem] font-semibold text-slate-700 dark:bg-white/[0.03] dark:text-slate-300">
+                    <th className="px-3 py-2">Material</th>
+                    <th className="px-3 py-2 text-right">On hand now</th>
+                    <th className="px-3 py-2 text-right">Stock OUT</th>
+                    <th className="px-3 py-2 text-right">Balance after</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {movements.map((mv) => (
+                    <tr key={mv.code} className="border-t border-line dark:border-white/[0.05]">
+                      <td className="px-3 py-2">
+                        <div className="font-medium">{mv.name}</div>
+                        <div className="text-[0.6875rem] text-slate-400">{mv.code}</div>
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-2 text-right tabular">{fmtNum(mv.onHand)} <span className="text-xs text-slate-400">{mv.unit}</span></td>
+                      <td className="whitespace-nowrap px-3 py-2 text-right tabular font-semibold text-rose-600">−{fmtNum(mv.out)} <span className="text-xs font-normal text-slate-400">{mv.unit}</span></td>
+                      <td className={`whitespace-nowrap px-3 py-2 text-right tabular font-semibold ${mv.after < 0 ? 'text-rose-600' : 'text-slate-900 dark:text-white'}`}>
+                        {fmtNum(mv.after)} <span className="text-xs font-normal text-slate-400">{mv.unit}</span>
+                        <div className="text-[0.6875rem] font-normal text-slate-400">{fmtNum(mv.onHand)} − {fmtNum(mv.out)} = {fmtNum(mv.after)}</div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {movements.some((mv) => mv.after < 0) && (
+              <p className="mt-2 text-xs font-semibold text-rose-600">A balance would go below zero: check the stock ledger before accepting.</p>
+            )}
             <Field label="Accepted by" className="mt-4"><input className={inputCls} value={by} onChange={(e) => setBy(e.target.value)} /></Field>
             <div className="mt-4 text-xs font-semibold text-slate-600 dark:text-slate-300">Signature</div>
             <div className="mt-1.5"><SignaturePad onChange={setSig} /></div>

@@ -318,6 +318,29 @@ export function ToastProvider({ children }) {
 export const useToast = () => useContext(ToastCtx);
 
 /* ---------- Small bits ---------- */
+/*
+  "Select all" checkbox: ticked when every item is ticked, partly ticked (indeterminate) when some are.
+  Clicking ticks everything, or clears everything when all are already ticked.
+*/
+export function SelectAll({ total, done, onChange, label = 'Select all', className }) {
+  const all = total > 0 && done === total;
+  const some = done > 0 && !all;
+  return (
+    <label className={cx('inline-flex cursor-pointer select-none items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-300', className)}>
+      <input
+        type="checkbox"
+        className="h-4 w-4 accent-[#2e37a4]"
+        checked={all}
+        ref={(el) => { if (el) el.indeterminate = some; }}
+        onChange={() => onChange(!all)}
+        disabled={total === 0}
+        aria-label={label}
+      />
+      {label && <span>{label}{total > 0 && <span className="ml-1 font-normal text-slate-400">({done}/{total})</span>}</span>}
+    </label>
+  );
+}
+
 export function Mono({ children, className }) {
   return <span className={cx('font-mono text-[0.7812rem] font-semibold', className)}>{children}</span>;
 }

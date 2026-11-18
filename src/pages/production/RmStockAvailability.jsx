@@ -150,7 +150,7 @@ export default function RmStockAvailability({ params }) {
                               <AlertTriangle size={13} />Record {fmtNum(l.onHand)} ≠ ledger
                             </span>
                           )}
-                          <button onClick={() => navigate('inventory/ledger', { code: l.code })} className="block text-[0.6875rem] font-semibold text-prod-500 hover:underline">
+                          <button onClick={() => navigate('inventory/movements', { code: l.code })} className="block text-[0.6875rem] font-semibold text-prod-500 hover:underline">
                             {l.entries} entr{l.entries === 1 ? 'y' : 'ies'} · view ledger
                           </button>
                         </td>

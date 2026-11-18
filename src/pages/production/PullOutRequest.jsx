@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { PackageOpen, PackageCheck, Hourglass, CheckCircle2, Truck } from 'lucide-react';
 import { useStore } from '../../store/StoreContext';
-import { Card, PageHeader, Button, Badge, Modal, Field, Mono, EmptyState, inputCls, fmtNum, fmtDateTime, cx, useToast } from '../../components/ui';
+import { Card, PageHeader, Button, Badge, Modal, Field, Mono, EmptyState, inputCls, fmtNum, fmtDateTime, cx, useToast, SelectAll } from '../../components/ui';
 import RequestItems from '../../components/RequestItems';
 import { navigate } from '../../router';
 import { RequestRowActions } from '../../components/rowActions';
@@ -85,6 +85,10 @@ export default function PullOutRequest() {
         footer={<><Button variant="ghost" onClick={() => setVerify(null)}>Cancel</Button><Button variant="production" icon={CheckCircle2} disabled={!allChecked} onClick={confirm}>Confirm verification</Button></>}>
         {verify && (
           <div className="space-y-2">
+            <div className="flex justify-end">
+              <SelectAll total={verify.items.length} done={verify.items.filter((it) => checks[it.code]).length}
+                onChange={(v) => setChecks(Object.fromEntries(verify.items.map((it) => [it.code, v])))} />
+            </div>
             {verify.items.map((it) => (
               <label key={it.code} className={cx('flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition', checks[it.code] ? 'border-emerald-300 bg-emerald-50 dark:border-emerald-500/30 dark:bg-emerald-500/10' : 'border-slate-200 dark:border-white/10')}>
                 <input type="checkbox" className="h-4 w-4 accent-emerald-600" checked={!!checks[it.code]} onChange={(e) => setChecks({ ...checks, [it.code]: e.target.checked })} />

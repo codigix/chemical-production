@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ScanSearch, ShieldCheck, Eye } from 'lucide-react';
 import { useStore } from '../../store/StoreContext';
-import { Card, CardHeader, PageHeader, Button, Badge, Modal, Field, Mono, Table, EmptyState, inputCls, fmtNum, fmtDateTime, cx, useToast } from '../../components/ui';
+import { Card, CardHeader, PageHeader, Button, Badge, Modal, Field, Mono, Table, EmptyState, inputCls, fmtNum, fmtDateTime, cx, useToast, SelectAll } from '../../components/ui';
 import RequestItems from '../../components/RequestItems';
 import OrderDetail from '../../components/OrderDetail';
 import { StockCheckRowActions } from '../../components/rowActions';
@@ -79,6 +79,10 @@ export default function StockVerification() {
       <Modal open={!!cur} onClose={() => setCur(null)} title={cur && `Stock check · ${cur.id}`} subtitle="Every point must be confirmed."
         footer={<><Button variant="ghost" onClick={() => setCur(null)}>Cancel</Button><Button variant="inventory" icon={ShieldCheck} disabled={!all || !form.by} onClick={confirm}>Mark verified</Button></>}>
         <div className="space-y-2">
+          <div className="flex justify-end">
+            <SelectAll total={CHECKS.length} done={CHECKS.filter((_, i) => form.checks[i]).length}
+              onChange={(v) => setForm({ ...form, checks: Object.fromEntries(CHECKS.map((_, i) => [i, v])) })} />
+          </div>
           {CHECKS.map((c, i) => (
             <label key={c} className={cx('flex cursor-pointer items-center gap-3 rounded-lg border p-3 text-sm transition', form.checks[i] ? 'border-inv-500/40 bg-inv-50 dark:bg-inv-500/10' : 'border-slate-200 dark:border-white/10')}>
               <input type="checkbox" className="h-4 w-4 accent-[#2e37a4]" checked={!!form.checks[i]} onChange={(e) => setForm({ ...form, checks: { ...form.checks, [i]: e.target.checked } })} />

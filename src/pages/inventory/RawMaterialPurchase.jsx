@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ShoppingCart, Plus, FileText, PackagePlus, Trash2, AlertTriangle } from 'lucide-react';
 import { useStore } from '../../store/StoreContext';
-import { Card, CardHeader, PageHeader, Button, Badge, Modal, Field, Mono, Table, EmptyState, inputCls, fmtNum, fmtDate, fmtDateTime, useToast } from '../../components/ui';
+import { Card, CardHeader, PageHeader, Button, Badge, Modal, Field, Mono, Table, EmptyState, inputCls, fmtNum, fmtDate, fmtDateTime, cx, useToast } from '../../components/ui';
 import RequestItems from '../../components/RequestItems';
 import { navigate } from '../../router';
 import { RequestRowActions, PurchaseRowActions } from '../../components/rowActions';
@@ -22,8 +22,10 @@ export default function RawMaterialPurchase() {
   const supplierOf = (code) => mat(code)?.supplier || SUPPLIERS[0];
   const supplierOptions = [...new Set([...SUPPLIERS, ...state.materials.map((m) => m.supplier).filter(Boolean), po?.supplier].filter(Boolean))];
 
-  const openFromReq = (r) => setPo({ reqId: r.id, supplier: supplierOf(r.items[0]?.code), expected: inAWeek, items: r.items.map((it) => ({ ...it, qty: Math.ceil(it.qty / 50) * 50, rate: rateOf(it.code) })) });
+  const openFromReq = (r) => setPo({ reqId: r.id, supplier: supplierOf(r.items[0]?.code), expected: inAWeek, items: r.items.map((it) => ({ ...it, qty: it.qty, required: it.qty, rate: rateOf(it.code) })) }); // exact shortage qty, no rounding
   const openBlank = () => setPo({ reqId: null, supplier: supplierOf(state.materials[0].code), expected: inAWeek, items: [{ code: state.materials[0].code, qty: 100, rate: rateOf(state.materials[0].code) }] });
+  /* A PO raised against a requirement may not order less than Production needs */
+  const short = !!po?.items.some((it) => it.required != null && Number(it.qty) < it.required);
   const setItem = (i, patch) => setPo({ ...po, items: po.items.map((x, j) => (j === i ? { ...x, ...patch } : x)) });
 
   const raise = () => {
@@ -81,7 +83,7 @@ export default function RawMaterialPurchase() {
       </Card>
 
       <Modal open={!!po} onClose={() => setPo(null)} title="Raise purchase order" subtitle={po?.reqId ? `Against requirement ${po.reqId}` : 'Direct purchase'} width="max-w-2xl"
-        footer={<><Button variant="ghost" onClick={() => setPo(null)}>Cancel</Button><Button variant="inventory" icon={FileText} onClick={raise} disabled={!po?.items.length}>Raise PO</Button></>}>
+        footer={<><Button variant="ghost" onClick={() => setPo(null)}>Cancel</Button><Button variant="inventory" icon={FileText} onClick={raise} disabled={!po?.items.length || short || po.items.some((it) => !(Number(it.qty) > 0))}>Raise PO</Button></>}>
         {po && (
           <>
             <div className="grid gap-3 sm:grid-cols-2">
@@ -105,7 +107,15 @@ export default function RawMaterialPurchase() {
                       <option key={m.code} value={m.code}>{m.code} · {m.name}{m.rate ? ` (₹${m.rate}/${m.unit})` : ' (no rate)'}</option>
                     ))}
                   </select>
-                  <input type="number" className={inputCls} value={it.qty} onChange={(e) => setItem(i, { qty: e.target.value })} />
+                  <div>
+                    <input type="number" min="0" step="any" className={cx(inputCls, it.required != null && Number(it.qty) < it.required && 'border-rose-400')} value={it.qty}
+                      onChange={(e) => setItem(i, { qty: e.target.value })} aria-label="Quantity" />
+                    {it.required != null && (
+                      <div className={cx('mt-1 text-[0.6875rem] font-semibold', Number(it.qty) < it.required ? 'text-rose-600' : 'text-slate-500')}>
+                        Required {fmtNum(it.required)} {mat(it.code)?.unit}
+                      </div>
+                    )}
+                  </div>
                   <input type="number" className={inputCls} value={it.rate} onChange={(e) => setItem(i, { rate: e.target.value })} />
                   {!po.reqId && <button className="text-slate-400 hover:text-rose-500" onClick={() => setPo({ ...po, items: po.items.filter((_, j) => j !== i) })} aria-label="Remove"><Trash2 size={16} /></button>}
                 </div>
@@ -120,7 +130,13 @@ export default function RawMaterialPurchase() {
               Rate and supplier are fetched from the <a href="#/inventory/materials" className="font-semibold text-prod-500 hover:underline">Raw Material Master</a>. You can still change them for this PO.
               {po.items.some((it) => !rateOf(it.code)) && <span className="ml-1 font-semibold text-rose-600">Some materials have no standard rate in the master.</span>}
             </p>
-            {po.reqId && <p className="mt-1 text-xs text-slate-500">Quantities are rounded up to the nearest 50 {mat(po.items[0]?.code)?.unit}. Adjust if needed.</p>}
+            {po.reqId && (
+              <p className={cx('mt-1 text-xs', short ? 'font-semibold text-rose-600' : 'text-slate-500')}>
+                {short
+                  ? 'A line is below the quantity Production needs. Order at least the required quantity.'
+                  : `Quantities are the exact shortage on ${po.reqId}. Increase them only if the supplier sells in bigger packs.`}
+              </p>
+            )}
           </>
         )}
       </Modal>

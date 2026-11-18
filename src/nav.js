@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, ClipboardList, BookOpenCheck, Gauge, PackageOpen, FileCheck2, History,
-  Boxes, ShoppingCart, PackagePlus, Inbox, PackageMinus, ScanSearch, Stamp, BookText,
+  Boxes, ShoppingCart, PackagePlus, Inbox, PackageMinus, ScanSearch, Stamp, BookText, ArrowLeftRight,
 } from 'lucide-react';
 
 /* Menu bar: only the two existing modules, Production and Inventory. */
@@ -28,7 +28,8 @@ export const NAV = [
       { path: 'inventory/pull-out', label: 'Raw Material Pull Out', icon: PackageMinus, desc: 'Issue material to production' },
       { path: 'inventory/stock-verification', label: 'Stock Person Verification', icon: ScanSearch, desc: 'Physical check of submitted SOPs' },
       { path: 'inventory/office-acceptance', label: 'SOP Office Acceptance', icon: Stamp, desc: 'Office signature and final acceptance' },
-      { path: 'inventory/ledger', label: 'Stock Ledger', icon: BookText, desc: 'Stock balances and movements' },
+      { path: 'inventory/ledger', label: 'Stock Ledger', icon: BookText, desc: 'Stock balances per material' },
+      { path: 'inventory/movements', label: 'Stock Movement', icon: ArrowLeftRight, desc: 'Every IN/OUT with running balance' },
     ],
   },
 ];

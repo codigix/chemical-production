@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { FileCheck2, Send, ClipboardCheck, Eye } from 'lucide-react';
 import { useStore, requirementFor } from '../../store/StoreContext';
-import { Card, CardHeader, PageHeader, Button, Badge, Modal, Field, Mono, Table, EmptyState, inputCls, fmtNum, fmtDateTime, cx, useToast } from '../../components/ui';
+import { Card, CardHeader, PageHeader, Button, Badge, Modal, Field, Mono, Table, EmptyState, inputCls, fmtNum, fmtDateTime, cx, useToast, SelectAll } from '../../components/ui';
 import OrderFlow from '../../components/OrderFlow';
 import OrderDetail from '../../components/OrderDetail';
 import { SubmissionRowActions, OrderViewActions } from '../../components/rowActions';
@@ -28,6 +28,13 @@ export default function SopSubmission() {
   const sop = sub && sopOf(sub);
   const allSteps = sop && sop.steps.every((_, i) => form.steps[i]);
   const allChecked = form.lines?.every((l) => l.checked);
+  /* Select-all helpers: a material group, all process steps, or everything on the sheet */
+  const stepMap = (v) => Object.fromEntries((sop?.steps || []).map((_, i) => [i, v]));
+  const setGroup = (grp, v) => setForm({ ...form, lines: form.lines.map((l) => (l.group === grp ? { ...l, checked: v } : l)) });
+  const setAllSteps = (v) => setForm({ ...form, steps: stepMap(v) });
+  const setEverything = (v) => setForm({ ...form, lines: form.lines.map((l) => ({ ...l, checked: v })), steps: stepMap(v) });
+  const totalItems = (form.lines?.length || 0) + (sop?.steps.length || 0);
+  const doneItems = (form.lines?.filter((l) => l.checked).length || 0) + (sop?.steps.filter((_, i) => form.steps[i]).length || 0);
   const setLine = (i, patch) => setForm({ ...form, lines: form.lines.map((l, j) => (j === i ? { ...l, ...patch } : l)) });
   const submit = () => {
     dispatch('SUBMIT_SOP', {
@@ -92,18 +99,31 @@ export default function SopSubmission() {
               <Field label="MFG date"><input type="date" className={inputCls} value={form.mfgDate} onChange={(e) => setForm({ ...form, mfgDate: e.target.value })} /></Field>
             </div>
 
+            {/* One switch for every check list line and process step */}
+            <div className="mt-5 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-prod-100 bg-prod-50/60 px-4 py-2.5 dark:border-white/[0.07] dark:bg-prod-500/10">
+              <span className="text-sm text-slate-600 dark:text-slate-300">Every material line and process step must be ticked before submitting.</span>
+              <SelectAll label="Select everything" total={totalItems} done={doneItems} onChange={setEverything} className="text-prod-500" />
+            </div>
+
             {[['RM', 'Bill of raw material'], ['PM', `Packing material${sop.packSize ? ` for ${sop.packSize} pack` : ''}`]].map(([grp, label]) => {
               const rows = form.lines.map((l, i) => ({ ...l, i })).filter((l) => l.group === grp);
               if (!rows.length) return null;
               return (
                 <div key={grp} className="mt-5">
-                  <div className="mb-2 text-[0.78rem] font-bold uppercase tracking-wider text-prod-500">{label}</div>
+                  <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                    <div className="text-[0.78rem] font-bold uppercase tracking-wider text-prod-500">{label}</div>
+                    <SelectAll total={rows.length} done={rows.filter((l) => l.checked).length} onChange={(v) => setGroup(grp, v)} />
+                  </div>
                   <div className="overflow-x-auto rounded-lg border border-line dark:border-white/[0.07]">
                     <table className="w-full min-w-[40rem] text-sm">
                       <thead>
                         <tr className="bg-prod-50/70 text-left text-[0.75rem] font-semibold text-slate-700 dark:bg-white/[0.03] dark:text-slate-300">
                           <th className="w-14 px-3 py-2">Sr No</th><th className="px-3 py-2">{grp === 'RM' ? 'Ingredient' : 'Material'}</th>
-                          <th className="px-3 py-2 text-right">Std qty</th><th className="w-36 px-3 py-2">Actual qty</th><th className="w-24 px-3 py-2 text-center">Check list</th>
+                          <th className="px-3 py-2 text-right">Std qty</th><th className="w-36 px-3 py-2">Actual qty</th><th className="w-28 px-3 py-2 text-center">
+                            <span className="inline-flex items-center gap-1.5">
+                              <SelectAll label="" total={rows.length} done={rows.filter((l) => l.checked).length} onChange={(v) => setGroup(grp, v)} />Check list
+                            </span>
+                          </th>
                         </tr>
                       </thead>
                       <tbody>
@@ -131,11 +151,10 @@ export default function SopSubmission() {
                 </div>
               );
             })}
-            <div className="mt-2 flex justify-end">
-              <Button size="sm" variant="soft" onClick={() => setForm({ ...form, lines: form.lines.map((l) => ({ ...l, checked: true })) })}>Tick all lines</Button>
+            <div className="mb-2 mt-5 flex flex-wrap items-center justify-between gap-2">
+              <div className="text-[0.78rem] font-bold uppercase tracking-wider text-prod-500">Process steps completed</div>
+              <SelectAll total={sop.steps.length} done={sop.steps.filter((_, i) => form.steps[i]).length} onChange={setAllSteps} />
             </div>
-
-            <div className="mb-2 mt-5 text-[0.78rem] font-bold uppercase tracking-wider text-prod-500">Process steps completed</div>
             <div className="space-y-2">
               {sop.steps.map((st, i) => (
                 <label key={i} className={cx('flex cursor-pointer items-center gap-3 rounded-lg border p-3 text-sm transition', form.steps[i] ? 'border-prod-500/40 bg-prod-50 dark:bg-prod-500/10' : 'border-slate-200 dark:border-white/10')}>
